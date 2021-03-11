@@ -15,9 +15,9 @@ Use Bash or python to pull the latitude and longitude coordinates for each Incid
       # then create a parsed text file
       cat NLP_Patient_20210201_160117.txt | cut -d\| -f1,12,13 > NLP_Patient_20210201_160117_formattedLL.txt
       
-Run [filter_select4Google.py](). This workflow will import both of the above files, then output an internal list with identifiers (this *must* stay on Silo) and an external list of NER term and Lat/Lon centroid coordinates for Google Places to scan.
+Run [filter_select4Google.py](https://github.com/disulfidebond/COVID_tracking/blob/main/loc_mapping/filter_select.02192021.v2.py). This workflow will import both of the above files, then output an internal list with identifiers (this *must* stay on Silo) and an external list of NER term and Lat/Lon centroid coordinates for Google Places to scan.
 
-Next, run [places_query.02202021.py](). This file requires two inputs: the external output file from filter_select4Google.py, and the business database file.
+Next, run [places_query.02202021.py](https://github.com/disulfidebond/COVID_tracking/blob/main/loc_mapping/places_query.02202021.py). This file requires two inputs: the external output file from filter_select4Google.py, and the business database file.
 
 This script does the following: 
 1. Import the list of places, and the business database file.
