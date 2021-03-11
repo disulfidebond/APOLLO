@@ -12,6 +12,7 @@ Use Bash or python to pull the latitude and longitude coordinates for each Incid
 
       # output will be column index with latitude, repeat for longitude and IncndentID
       head -n1 NLP_Patient_20210201_160117.txt | sed 's/|/\n/g' | grep -n Latitude
+      # then create a parsed text file
       cat NLP_Patient_20210201_160117.txt | cut -d\| -f1,12,13 > NLP_Patient_20210201_160117_formattedLL.txt
       
 Run [filter_select4Google.py](). This workflow will import both of the above files, then output an internal list with identifiers (this *must* stay on Silo) and an external list of NER term and Lat/Lon centroid coordinates for Google Places to scan.
