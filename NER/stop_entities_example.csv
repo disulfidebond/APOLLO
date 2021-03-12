@@ -1,0 +1,4 @@
+﻿Name,Type,Iterations,Frequency,Score,Incidents,Outbreaks
+entity_1,Location,1000,1,0.96,,
+entity_2,Organization,100,0.1,0.32,,
+entity_3,Location,10,0.01,0.54,,
