@@ -27,7 +27,11 @@ This step was done using python. The 'solumns.sorted.txt' files from above serve
         for i in fOpen:
           i = i.rstrip('\r\n')
           df_indices.append(i)
-      df_data = pd.read_csv('NLP_RiskAndInterventionShortFields_20210318_181730.txt', sep='|', encoding='iso-8859-1', error_bad_lines=False)
+      df_data = pd.read_csv('NLP_RiskAndInterventionShortFields_20210318_181730.txt', 
+                            sep='|', 
+                            encoding='iso-8859-1', 
+                            error_bad_lines=False, 
+                            warn_bad_lines=False)
       df_parsed = df_data.loc[:,df_indices]
       df_parsed.to_csv("NLP_RiskAndInterventionShortFields_20210318_181730.addressFields.csv")
 
