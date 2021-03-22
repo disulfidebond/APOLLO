@@ -35,3 +35,12 @@ This step was done using python. The 'solumns.sorted.txt' files from above serve
       df_parsed = df_data.loc[:,df_indices]
       df_parsed.to_csv("NLP_RiskAndInterventionShortFields_20210318_181730.addressFields.csv")
 
+## Create Merged column of all address data
+Note that this step can be combined with the previous one
+
+      import pandas as pd
+      df_data = pd.read_csv("NLP_RiskAndInterventionShortFields_20210318_181730.addressFields.csv")
+      df_data["Merged"] = df_data.iloc[:,1:].apply(lambda x: ','.join(x.dropna().astype(str)), axis=1)
+      df_output = df_data.loc[:,["IncidentID", "Merged"]]
+      df_output.to_csv("NLP_RiskAndInterventionShortFields_20210318_181730.addressFields-merged.csv")
+
