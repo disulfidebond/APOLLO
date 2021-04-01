@@ -8,6 +8,10 @@
 ehthumbs.db
 Thumbs.db
 
+# don't commit bert model
+NER/APOLLO/bert-base-NER/*
+!NER/APOLLO/bert-base-BER/put_model_here.md
+
 # Distribution / packaging
 .Python
 build/
