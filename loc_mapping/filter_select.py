@@ -7,6 +7,17 @@ import random
 from datetime import datetime
 from sklearn.cluster import KMeans
 import random
+import argparse
+import math
+
+ts_string = datetime.now().strftime("%H%M"+"_"+"%m%d%y")
+
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--data', type=str, help='input filename for weekly data', required=True)
+parser.add_argument('--patients', type=str, help='filename for formatted patient lat/lon coordinates', required=True)
+args = parser.parse_args()
+
 
 nameCol = []
 typeCol = []
@@ -15,7 +26,7 @@ scoreCol = []
 incidentsCol = []
 outbreakCol = []
 rowCt = 0
-with open('FinalResults_with_OutbreakID_matching_NER.csv') as fOpen:
+with open(args.data) as fOpen:
   header = True
   for i in fOpen:
     rowCt += 1
@@ -114,17 +125,18 @@ print('total ' + str(rowCt) + ' rows.')
 print('found ' + str(filteredCount) + ' Misc or Org rows, and skipped ' + str(unfilteredCount) + ' rows.')
 
 # import dataset to pull lat/lng coordinates
-df = pd.read_csv('NLP_Patient_20210216_085920.formattedLL.txt', header=None)
-df_incidents = df.loc[:,0].tolist()
+df = pd.read_csv(args.patients, sep='|', dtype={'IncidentID': 'int', 'Latitude': 'float', 'Longitude': 'float'})
+df_incidents = df.loc[:,'IncidentID'].tolist()
 df_incidents = [str(x) for x in df_incidents]
-df_lat = df.loc[:,1].tolist()
-df_lng = df.loc[:,2].tolist()
+df_lat = df.loc[:,'Latitude'].tolist()
+df_lng = df.loc[:,'Longitude'].tolist()
 formatted_results = []
 resList = []
 resNames = []
 dup_Ct = 0
 
-with open('internalList.GooglePlaces.txt', 'a') as fWrite:
+internalListFile = 'internalList.GooglePlaces.' + ts_string + '.txt'
+with open(internalListFile, 'a') as fWrite:
   for i in range(0, len(results_lol)):
     itm = results_lol[i]
     incList = ','.join(itm[4])
@@ -152,9 +164,18 @@ for i in results_lol:
   lat_coord = float()
   lng_coord = float()
   if len(rList) == 1:
-    lat_coord = rList[0][0]
-    lng_coord = rList[0][1]
+    if np.isnan(rList[0]).any() == True:
+      print('No Lat/Lon coordinates for IncidentID ' + str(nm))
+      resList.append((nm, (-1, -1)))
+      continue
+    else:
+      lat_coord = rList[0][0]
+      lng_coord = rList[0][1]
   else:
+    rList1 = list(filter(lambda x: np.isnan(x).any() != True, rList))
+    if len(rList1) != len(rList):
+      print('warning, missing Lat/Lon in ' + str(nm) + ' !')
+      rList = rList1
     coords_arr = np.asarray(rList, dtype=np.float64)
     km = KMeans(n_clusters = 1, init='random', max_iter=300, random_state=42)
     km.fit(coords_arr)
@@ -167,8 +188,10 @@ for i in results_lol:
     lat_coord = lat_coord - rand_scramble
   resList.append((nm, (lat_coord, lng_coord)))
 ct = 0
+
+list4GooglePlacesFile = 'list4GooglePlaces.' + ts_string + '.txt'
 for i in resList:
   # print(str(ct) + ',' +str(i[0]) + ',' + str(i[1][0]) + ',' + str(i[1][1]))
-  with open('list4GooglePlaces.txt', 'a') as fWrite:
+  with open(list4GooglePlacesFile, 'a') as fWrite:
     fWrite.write(str(ct) + ',' +str(i[0]) + ',' + str(i[1][0]) + ',' + str(i[1][1]) + '\n')
   ct += 1
