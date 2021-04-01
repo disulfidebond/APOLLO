@@ -1,4 +1,13 @@
-# NER Pipeline
+# APOLLO
+## Automated Public Outbreak Localization though Lexical Operations
+### NER Pipeline
+
+
+in APOLLO/
+pip install -e .
+
+in project root:
+python run_apollo_example.py
 
 Given specific WEDSS extract files:
 1. Identify all confirmed or probable IncidentIDs pertaining to a specified week

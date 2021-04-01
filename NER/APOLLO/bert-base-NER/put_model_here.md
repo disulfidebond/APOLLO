@@ -1,0 +1,1 @@
+Download model (https://huggingface.co/dslim/bert-base-NER) and put files here.

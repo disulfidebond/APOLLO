@@ -1,13 +1,28 @@
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
+from typing import List
 
-tokenizer=AutoTokenizer.from_pretrained("./BERT_cased")
-model=AutoModelForTokenClassification.from_pretrained("./BERT_cased")
+tokenizer=AutoTokenizer.from_pretrained("APOLLO/bert-base-NER", local_files_only=True)
+model=AutoModelForTokenClassification.from_pretrained("APOLLO/bert-base-NER", local_files_only=True)
 
+def get_tokens(txt:str) -> List:
+    """
+    return list of encoded tokens including start and stop tokens.
+    """
+    return tokenizer(txt)['input_ids']
+
+
+def decode_tokens(encoded_input: List) -> List:
+    """
+    decode tokens to original words
+    """
+    return tokenizer.decode(encoded_input)
+
+    
 def nerfunc(txt):
     nlp=pipeline("ner",model=model,tokenizer=tokenizer)
     ner_res=nlp(txt)
-    # return list of dicts [ {'word': 'Europe', 'score': 0.9999999, 'entity': 'B-LOC', index: 45 start: 74 end: 79}, {etc}]
+    # return list of dicts [ {'word': 'China', 'score': 0.9999999, 'entity': 'B-LOC', index: 45 start: 74 end: 79}, {etc}]
     output=[]
     scores=[]
     types=[]
@@ -54,10 +69,10 @@ def nerfunc(txt):
                 t='Location'
             if rec['entity']=='B-MISC':
                 t='Miscellaneous'
-    return(output,types,scores)
+    return(output,types,scores,get_tokens(txt))
 
 if __name__=="__main__":
-    txt="The Univesity of Wisconsin-Madison is the home of the Badgers, near Lake Mendota."
+    txt="Bucky The Badger lives in Madison, WI"
     output,types,scores=nerfunc(txt)
     print(output)
 
