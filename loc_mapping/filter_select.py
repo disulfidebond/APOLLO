@@ -100,7 +100,7 @@ with open(args.data) as fOpen:
     outbreakCol.append(outbreakID_list)
 
 
-def createDataList(nCol, tCol, iCol, sCol, filterList=[]):
+def createDataList(nCol, tCol, inCol, itCol, sCol, filterList=[]):
   filteredCount = 0
   unfilteredCount = 0
   results_lol = []
@@ -128,7 +128,7 @@ def createDataList(nCol, tCol, iCol, sCol, filterList=[]):
     print('found ' + str(filteredCount) + ' Misc or Org rows, and skipped ' + str(unfilteredCount) + ' rows.')
   return results_lol
 
-results_lol = createDataList(nameCol, typeCol, iterationsCol, scoreCol, filterList=[])
+results_lol = createDataList(nCol=nameCol, tCol=typeCol, inCol=incidentsCol, itCol=iterationsCol, sCol=scoreCol, filterList=[])
 
 
 # import dataset to pull lat/lng coordinates
