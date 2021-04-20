@@ -19,6 +19,47 @@ parser.add_argument('--patients', type=str, help='filename for formatted patient
 args = parser.parse_args()
 
 
+def calcClustering(l, elbow_cutoff = None):
+  """
+  input list must be in the format [[float(lat),float(lng)],[float(lat),float(lng)],...]
+  """
+  distortions = []
+  if elbow_cutoff is None:
+      elbow_cutoff = 16
+  coords_arr = np.asarray(l, dtype=np.float64)
+  kMax = len(l)
+  for i in range(1, kMax):
+    km = KMeans(n_clusters = i, init='random', max_iter=300, random_state=42)
+    km.fit(coords_arr)
+    distortions.append(km.inertia_)
+  distortions_list = [(x+1, distortions[x]) for x in range(0, len(distortions))]
+  """
+  find distortions slopes
+  """
+  distortions_slopes = []
+  for i in range(0, (len(distortions_list) - 1)):
+    data2 = distortions_list[i+1]
+    x1 = distortions_list[i][0]
+    y1 = distortions_list[i][1]
+    x2 = data2[0]
+    y2 = data2[1]
+    distortions_slopes.append((x1,((y2-y1)/(x2-x1))))
+  """
+  if elbowPoint < threshold, return that k, otherwise return k == 1
+  """
+  elbowPoint = 1
+  for i in range(0, len(distortions_slopes) - 1):
+    next_slope = distortions_slopes[i+1]
+    curr_slope = distortions_slopes[i]
+    try:
+      if (curr_slope[1]/next_slope[1])**2 < elbow_cutoff:
+        elbowPoint = curr_slope[0]
+        break
+    except ZeroDivisionError:
+      print(l)
+      sys.exit()
+  return elbowPoint
+
 nameCol = []
 typeCol = []
 iterationsCol = []
@@ -58,74 +99,42 @@ with open(args.data) as fOpen:
     incidentsCol.append(iAppend)
     outbreakCol.append(outbreakID_list)
 
-# codeblock 1: look for duplicated entries
-# TODO: create additional filter to select types
-# then add to vocab search list 
-dup_items = []
-itemsList = []
-for i in range(1, len(incidentsCol)):
-  if i == 1:
-    itemsList.append(incidentsCol[i])
-  else:
-    if incidentsCol[i] not in itemsList:
-      itemsList.append(incidentsCol[i])
+
+def createDataList(nCol, tCol, iCol, sCol, filterList=[]):
+  filteredCount = 0
+  unfilteredCount = 0
+  results_lol = []
+  for i in range(1, len(iCol)):
+    if not filterList:
+      iList = list(set(iCol[i]))
+      iList = list(filter(lambda x: x != '', iList))
+      x = (nCol[i], tCol[i], iCol[i], sCol[i], iList, (i,i))
+      results_lol.append(x)
     else:
-      d = [x for x in range(len(incidentsCol)) if incidentsCol[x] in [incidentsCol[i]]]
-      dup_items.extend(d)
-dup_items = list(set(dup_items))
-dup_items.sort()
-flagList1 = []
-flagList_incidents = []
-for i in dup_items:
-  flagList1.append((incidentsCol[i], typeCol[i], nameCol[i]))
-  flagList_incidents.append(incidentsCol[i])
+      # untested
+      if typeCol[i] in filterList:
+        # COMMENT: This prevents clustering errors
+        # from duplicated entries but does not preserve order.
+        iList = list(set(iCol[i]))
+        iList = list(filter(lambda x: x != '', iList))
+        x = (nCol[i], tCol[i], iCol[i], sCol[i], iList, (i,filteredCount))
+        results_lol.append(x)
+        filteredCount += 1
+      else:
+        unfilteredCount += 1
+        continue
+  if filterList:
+    print('total ' + str(rowCt) + ' rows.')
+    print('found ' + str(filteredCount) + ' Misc or Org rows, and skipped ' + str(unfilteredCount) + ' rows.')
+  return results_lol
 
-flagList1_parsed = []
-flagList1_ids = []
-for i in flagList1:
-  iList = i[0]
-  if len(iList[-1]) == 0:
-    iList = iList[:-1]
-  iListStr = '_'.join(iList)
-  flagList1_parsed.append((iListStr, i[1], i[2]))
-  flagList1_ids.append(iListStr)
-flagList1_ids = list(set(flagList1_ids))
+results_lol = createDataList(nameCol, typeCol, iterationsCol, scoreCol, filterList=[])
 
-duplicatedIds = []
-duplicatedId_names = []
-for i in flagList1_ids:
-  res = list(filter(lambda x: x[0] == i, flagList1_parsed))
-  types_res = [x[1] for x in res]
-  names_res = [x[2] for x in res]
-  names_res_str = ','.join(names_res)
-  iSplit = i.split('_')
-  # iSplit = [int(x) for x in iSplit]
-  duplicatedIds.append(iSplit)
-  duplicatedId_names.append(names_res_str)
-  nm_str = i.replace('_',',')
-  # print(nm_str + ',' + names_res_str)
-# end code block
-
-results_lol = []
-filteredCount = 0
-unfilteredCount = 0
-for i in range(0, len(incidentsCol)):
-  if typeCol[i] == 'Miscellaneous' or typeCol[i] == 'Organization':
-    iList = incidentsCol[i]
-    if len(iList[-1]) == 0:
-      iList = iList[:-1]
-    # if len(iList) > 1:
-    x = (nameCol[i], typeCol[i], iterationsCol[i], scoreCol[i], iList)
-    results_lol.append(x)
-    filteredCount += 1
-  else:
-    unfilteredCount += 1
-    continue
-print('total ' + str(rowCt) + ' rows.')
-print('found ' + str(filteredCount) + ' Misc or Org rows, and skipped ' + str(unfilteredCount) + ' rows.')
-
+print('results_lol is')
+print(results_lol[0:5])
 # import dataset to pull lat/lng coordinates
 df = pd.read_csv(args.patients, sep='|', dtype={'IncidentID': 'int', 'Latitude': 'float', 'Longitude': 'float'})
+print(df.head())
 df_incidents = df.loc[:,'IncidentID'].tolist()
 df_incidents = [str(x) for x in df_incidents]
 df_lat = df.loc[:,'Latitude'].tolist()
@@ -135,12 +144,15 @@ resList = []
 resNames = []
 dup_Ct = 0
 
+time.sleep(60)
+
 internalListFile = 'internalList.GooglePlaces.' + ts_string + '.txt'
 with open(internalListFile, 'a') as fWrite:
   for i in range(0, len(results_lol)):
     itm = results_lol[i]
     incList = ','.join(itm[4])
-    # print(str(i) + '|' + itm[0] + '|' + itm[1] + '|' + itm[2] + '|' + itm[3] + '|' + incList)
+    # print(itm)
+    # print(str(itm[5][0]) + ',' + str(itm[5][1]) + '|' + itm[0] + '|' + itm[1] + '|' + itm[2] + '|' + itm[3] + '|' + incList)
     fWrite.write(str(i) + '|' + itm[0] + '|' + itm[1] + '|' + itm[2] + '|' + itm[3] + '|' + incList + '\n')
 
 for i in results_lol:
@@ -148,50 +160,74 @@ for i in results_lol:
   rList = []
   nm = i[0]
   for itm in iList:
-    # skipping this for now, it can return patient names as words to add 
-    # dupIdxList = [(i, f.index(itm)) for i, f in enumerate(duplicatedIds) if itm in f]
-    # nms_add = duplicatedId_names[dupIdxList[0][0]]
-    # if itm in (item for subl in duplicatedIds for item in subl):
     if itm in df_incidents:
       fIdx = df_incidents.index(itm)
       rList.append([df_lat[fIdx],df_lng[fIdx]])
-      # if len(dupIdxList) > 1:
-      #  dupCt += 1
-      #  nm = nm + ',' + dCheck[0][1]
     else:
-      print('warning, incident ID ' + str(itm) + ' not found!')
+      print('warning, incident ID ' + str(itm) + ' in ' + str(nm) + ' not found!')
+  """
+  if number of incident IDs < 3 skip running clustering and elbow detection
+  """
+  rList_filtered = list(filter(lambda x: np.isnan(x).any() != True, rList))
   rand_scramble = random.uniform(-0.02,0.02)
-  lat_coord = float()
-  lng_coord = float()
-  if len(rList) == 1:
-    if np.isnan(rList[0]).any() == True:
-      print('No Lat/Lon coordinates for IncidentID ' + str(nm))
-      resList.append((nm, (-1, -1)))
-      continue
+  if len(rList_filtered) == 0:
+    print('No Lat/Lon coordinates for IncidentID ' + str(nm))
+    coords = [(-1, -1)]
+    resList.append((nm, coords))
+  elif len(rList_filtered) == 1:
+    lat_coord = rList[0][0]
+    lng_coord = rList[0][1]
+    if rand_scramble < 0:
+      lat_coord = lat_coord - rand_scramble
     else:
-      lat_coord = rList[0][0]
-      lng_coord = rList[0][1]
-  else:
-    rList1 = list(filter(lambda x: np.isnan(x).any() != True, rList))
-    if len(rList1) != len(rList):
-      print('warning, missing Lat/Lon in ' + str(nm) + ' !')
-      rList = rList1
-    coords_arr = np.asarray(rList, dtype=np.float64)
+      lat_coord = lat_coord - rand_scramble
+    coords = [(lat_coord, lng_coord)]
+    resList.append((nm, coords))
+  elif len(rList_filtered) == 2:
+    coords_arr = np.asarray(rList_filtered, dtype=np.float64)
     km = KMeans(n_clusters = 1, init='random', max_iter=300, random_state=42)
     km.fit(coords_arr)
     centroids = km.cluster_centers_
     lat_coord = centroids[0][0]
     lng_coord = centroids[0][1]
-  if rand_scramble < 0:
-    lat_coord = lat_coord - rand_scramble
+    if rand_scramble < 0:
+      lat_coord = lat_coord - rand_scramble
+    else:
+      lat_coord = lat_coord - rand_scramble
+    coords = [(lat_coord, lng_coord)]
+    resList.append((nm, coords))
   else:
-    lat_coord = lat_coord - rand_scramble
-  resList.append((nm, (lat_coord, lng_coord)))
-ct = 0
+    """
+    else run clustering and elbow detection
+    """
+    k = calcClustering(rList_filtered, elbow_cutoff = 16)
+    coords_arr = np.asarray(rList_filtered, dtype=np.float64)
+    km = KMeans(n_clusters = k, init='random', max_iter=300, random_state=42)
+    km.fit(coords_arr)
+    centroids = km.cluster_centers_
+    lat_coords = []
+    lng_coords = []
+    if rand_scramble < 0:
+        lat_coords = [x[0] - rand_scramble for x in centroids]
+        lng_coords = [x[1] for x in centroids]
+    else:
+        lat_coords = [x[0] + rand_scramble for x in centroids]
+        lng_coords = [x[1] for x in centroids]
+    coords = list(zip(lat_coords, lng_coords))
+    resList.append((nm, coords))
 
+
+ct = 0
 list4GooglePlacesFile = 'list4GooglePlaces.' + ts_string + '.txt'
 for i in resList:
   # print(str(ct) + ',' +str(i[0]) + ',' + str(i[1][0]) + ',' + str(i[1][1]))
+  ll_string = ''
+  if len(i[1]) > 1:
+    ll_list = [str(x[0]) + ',' + str(x[1]) for x in i[1]]
+    ll_string = '|'.join(ll_list)
+  else:
+    ll_string = str(i[1][0][0]) + ',' + str(i[1][0][1]) + '|'
+  print(str(ct) + ',' + str(i[0]) + ',' + ll_string)
   with open(list4GooglePlacesFile, 'a') as fWrite:
-    fWrite.write(str(ct) + ',' +str(i[0]) + ',' + str(i[1][0]) + ',' + str(i[1][1]) + '\n')
+    fWrite.write(str(ct) + ',' + str(i[0]) + ',' + ll_string + '\n')
   ct += 1
