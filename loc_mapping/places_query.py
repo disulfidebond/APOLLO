@@ -16,38 +16,10 @@ t_stamp_string = datetime.datetime.fromtimestamp(t_stamp).strftime('%Y%m%d_%H%M%
 # apikey = 'AIzaSyBG_Js3Fv3zJrCCZErdWLRoQnGqram8RG0'
 # Part 0: Functions
 
-def extractName(l):
-    r = []
-    if len(l) > 3:
-        print('Warning, invalid type or structure!')
-    for i in l:
-        iSplit = i.split(',')
-        r.append(iSplit[0])
-    return r
-
-def fuzzyMatch(list_matchStrings, matches_NER):
-    returnList = []
-    for x in range(len(list_matchStrings)):
-        mString = list_matchStrings[x].upper()
-        tString = extractName(matches_NER[x])
-        tString = [v.upper() for v in tString]
-        tString_s = list(set(tString))
-        chainStore = False
-        if len(tString_s) == 1:
-            chainStore = True
-        v = process.extract(mString,tString)
-        if v[0][1] >= 80:
-            if chainStore:
-                returnList.append(matches_NER[x])
-            else:
-                returnList.append(matches_NER[x][0])
-            # v_filter = list(filter(lambda x: int(x[1]) >= 80, v))
-            # v_check = v_filter[0][0]
-            # v_filtered = list(filter(lambda x: x[0] == v_check, v_filter))
-            # returnList.append((matches_NER[x],v_filtered))
-        else:
-            returnList.append(None)
-    return returnList
+t_stamp = time.time()
+t_stamp_string = datetime.datetime.fromtimestamp(t_stamp).strftime('%Y%m%d_%H%M%S')
+apikey = 'AIzaSyBG_Js3Fv3zJrCCZErdWLRoQnGqram8RG0'
+# Part 0: Functions
 
 def mapDaneCountyLocation(apikey, location_lat, location_lng, radius_in_meters, debug_mode=False, next_page_token=None, locString=None):
     urlString_root = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json?'
@@ -72,47 +44,53 @@ def mapDaneCountyLocation(apikey, location_lat, location_lng, radius_in_meters, 
     else:
         decoded = r.json()
         return decoded
-def scanResults_regex(val, r):
-    s_split = r.split(' ')
-    r_str = s_split[0]
-    foundMatch = False
-    m = re.search(r_str, val, re.IGNORECASE)
-    if m:
-        return True
-    else:
-        return False
-def filterMatches(s, l):
-    foundResults = []
-    namedResults = []
-    returnedResults = []
-    for i in l['results']:
-        nm = i['name']
-        address = i['vicinity']
-        pl_id = i['place_id']
-        bus_status = None
-        try:
-            bus_status = i['business_status']
-        except KeyError:
-            bus_status = 'NOTBUSINESS'
-        namedResults.append((nm, address, pl_id, bus_status))
-    names = [x[0] for x in namedResults]
-    addresses = [x[1] for x in namedResults]
-    # place_ids = [x[2] for x in namedResults]
-    b_status = [x[3] for x in namedResults]
-    for idx,val in enumerate(names):
-        res = scanResults_regex(val, s)
-        if not res:
-            continue
+
+def parseResults(l):
+    nm = l['name']
+    address = l['vicinity']
+    pl_id = l['place_id']
+    bus_status = None
+    lat = l['geometry']['location']['lat']
+    lng = l['geometry']['location']['lng']
+    try:
+        bus_status = l['business_status']
+    except KeyError:
+        bus_status = 'NOTBUSINESS'
+    return (nm, address, pl_id, bus_status, lat, lng)
+
+def fuzzyMatch(parsedResults, fuzzy_NERterm):
+    fMatches_all = [x[1] for x in parsedResults]
+    fMatches = []
+    fuzzy_results = []
+    for i in fMatches_all:
+        fMatches.append([x[0] for x in i])
+    for idx in range(len(fMatches)):
+        mString = fuzzy_NERterm[idx]
+        mString = mString.upper()
+        if len(fMatches[idx]) == 0:
+            fuzzy_results.append((fuzzy_NERterm[idx], (None, None, None)))
+        elif len(fMatches[idx]) == 1:
+            m = [x.upper() for x in fMatches[idx]]
+            v = process.extract(mString, m)
+            m_name = parsedResults[idx][1][0][0]
+            m_address = parsedResults[idx][1][0][1]
+            m_url = parsedResults[idx][1][0][2]
+            m_url = 'https://www.google.com/maps/place/?q=place_id:' + m_url
+            fuzzy_results.append((fuzzy_NERterm[idx], [(m_name, m_address, v[0][1], m_url)]))
         else:
-            foundResults.append((val, addresses[idx], b_status[idx]))
-    stopCt = 0
-    for i in range(len(foundResults)):
-        if stopCt > 2:
-            break
-        if foundResults[i][2] != 'CLOSED_PERMANENTLY':
-            returnedResults.append((foundResults[i][0], foundResults[i][1]))
-        stopCt += 1
-    return returnedResults
+            m = [x.upper() for x in fMatches[idx]]
+            vals = process.extract(mString, m)
+            m_results = []
+            for v in vals:
+                vIdx = m.index(v[0])
+                vScore = v[1]
+                m_name = parsedResults[idx][1][vIdx][0]
+                m_address = parsedResults[idx][1][vIdx][1]
+                m_url = parsedResults[idx][1][vIdx][2]
+                m_url = 'https://www.google.com/maps/place/?q=place_id:' + m_url
+                m_results.append((m_name, m_address, vScore, m_url))
+            fuzzy_results.append((fuzzy_NERterm[idx], m_results))
+    return fuzzy_results
 
 
 parser = argparse.ArgumentParser()
@@ -135,6 +113,7 @@ if args.output:
 placesList = args.input
 
 # import coords list
+placesList = 'list4GooglePlaces.0021_040921.txt'
 coords_tupleList = []
 with open(placesList) as fOpen:
     for i in fOpen:
@@ -142,99 +121,133 @@ with open(placesList) as fOpen:
         iSplit = i.split(',')
         if len(iSplit) < 4:
             continue
-        coords_tupleList.append((iSplit[0], iSplit[1], iSplit[2], iSplit[3]))
+        iValues = iSplit[2:]
+        s = ','.join(iValues)
+        coordsList = s.split('|')
+        coordsList = list(filter(lambda x: x != '', coordsList))
+        listedValues = [x.split(',') for x in coordsList]
+        coords_tupleList.append((iSplit[0], iSplit[1], listedValues))
 
-returnedResults = []
-ct = 0
+unparsedResults = []
+tmp = []
+ct = -1
 for i in coords_tupleList:
     vocab = str(i[1])
-    if float(i[2]) == -1.0 or float(i[2]) == -1.0:
-        returnedResults.append((ct, vocab, ['NoLocation_Provided']))
-        ct += 1
-        continue
-    lat_c = str(i[2])
-    lng_c = str(i[3])
-    mappingResults = mapDaneCountyLocation(apikey=apikey, location_lat=lat_c, location_lng=lng_c, radius_in_meters=20000, debug_mode=True, next_page_token=None, locString=vocab)
-    if len(mappingResults['results']) == 0:
-        returnedResults.append((ct, vocab, ['NoResults']))
-        ct += 1
-        continue
-    filteredRes = filterMatches(vocab, mappingResults)
-    if len(filteredRes) == 0:
-        print(str(vocab) + ' failed regex filter, blindly selecting the top 3')
-        x_ct = 0
-        x_res = []
-        for val in mappingResults['results']:
-            try:
-                if val['business_status'] == 'CLOSED_PERMANENTLY':
-                    continue
-            except KeyError:
-                continue
-            if x_ct > 2:
-                break
-            nm = val['name']
-            a = val['vicinity']
-            x_res.append((nm, a))
-            x_ct += 1
-        if len(x_res) == 0:
-            returnedResults.append((ct, vocab, ['NoResults']))
-        else:
-            returnedResults.append((ct, vocab, x_res))
-    else:
-        returnedResults.append((ct, vocab, filteredRes))
     ct += 1
+    if len(i[2]) == 1:
+        lat_c = str(i[2][0][0])
+        lng_c = str(i[2][0][1])
+        mappingResults = mapDaneCountyLocation(apikey=apikey, location_lat=lat_c, location_lng=lng_c, radius_in_meters=20000, debug_mode=True, next_page_token=None, locString=vocab)
+        if len(mappingResults['results']) == 0:
+            print('nothing found in radius, expanding search to max')
+            mappingResults = mapDaneCountyLocation(apikey=apikey, location_lat=lat_c, location_lng=lng_c, radius_in_meters=30000, debug_mode=True, next_page_token=None, locString=vocab)
+        unparsedResults.append((vocab,[mappingResults]))
+    else:
+        multiple_coords = i[2]
+        m_res = []
+        for m in multiple_coords:
+            lat_c = str(m[0])
+            lng_c = str(m[1])
+            mappingResults = mapDaneCountyLocation(apikey=apikey, location_lat=lat_c, location_lng=lng_c, radius_in_meters=20000, debug_mode=True, next_page_token=None, locString=vocab)
+            if len(mappingResults['results']) == 0:
+                print('nothing found in radius, expanding search to max')
+                mappingResults = mapDaneCountyLocation(apikey=apikey, location_lat=lat_c, location_lng=lng_c, radius_in_meters=30000, debug_mode=True, next_page_token=None, locString=vocab)
+            m_res.append(mappingResults)
+        unparsedResults.append((vocab,m_res))
 
-k = 0
-with open(outFileName, 'w') as fWrite:
-    for i in returnedResults:
-        s_out = str(i[0]) + '|' + str(i[1]) + '|'
-        if i[2][0] == 'NoResults' or i[2][0] == 'NoLocation_Provided':
-            print(str(k) + ',' + s_out + 'NoResults')
-            fWrite.write(str(k) + ',' + s_out + 'NoResults' + '\n')
-            k += 1
-            continue
-        s_out_list = [str(x[0]) + ',' + str(x[1]) for x in i[2]]
-        # s_out_list = ['(' + str(x+1) + ') ' + s_out_list[x] for x in range(len(s_out_list))]
-        s_out_list_str = '|'.join(s_out_list)
-        fWrite.write(str(k) + ',' + s_out + s_out_list_str + '\n')
-        print(str(k) + ',' + s_out + s_out_list_str)
-        k += 1
+parsedResults = []
+ct = -1
+for unparsed in unparsedResults:
+    ct += 1
+    res = []
+    for r in unparsed[1][0]['results']:
+        # res = parseResults(r)
+        res.append(parseResults(r))
+    parsedResults.append((unparsed[0],res))
 
-list_NER = []
-matches_NER = []
-with open(outFileName) as fOpen:
+# only select up to 3 results
+fuzzy_NERterm = [x[0] for x in parsedResults]
+res = fuzzyMatch(parsedResults, fuzzy_NERterm)
+res_filtered = []
+for i in res:
+    if len(i[1]) > 3:
+        res_filtered.append((i[0],i[1][0:3]))
+    else:
+        res_filtered.append(i)
+
+# Output results as CSV file
+with open('parsed_matched_mapped.txt', 'w') as fWrite:
+    fWrite.write('NER_term' + '\t' + 
+                 'address1' + '\t' + 'confidence1' + '\t' + 'URL1' + '\t' + 
+                 'address2' + '\t' + 'confidence2' + '\t' + 'URL2' + '\t' + 
+                 'address3' + '\t' + 'confidence3' + '\t' + 'URL3' + '\n')
+    for r in res_filtered:
+        s = ''
+        s_fill = '\t' + '' + '\t' + '' + '\t' + '' + '\t' + ''
+        if len(r[1]) == 1:
+            s = r[0] + '\t' + str(r[1][0][0]) + '\t' + str(r[1][0][1]) + '\t' + str(r[1][0][2]) + '\t' + str(r[1][0][3]) + s_fill + s_fill
+        elif len(r[1]) == 2:
+            l_joined = [str(x[0]) + ' ' + str(x[1]) + str("\t") + str(x[2]) + '\t' + str(x[3]) for x in r[1]]
+            s = r[0] + '\t' + '\t'.join(l_joined) + s_fill
+        else:
+            if r[1][0] is None:
+                s = r[0] + s_fill + s_fill + s_fill
+            else:
+                l_joined = [str(x[0]) + ' ' + str(x[1]) + str("\t") + str(x[2]) + '\t' + str(x[3]) for x in r[1]]
+                s = r[0] + '\t' + '\t'.join(l_joined)
+        # print(s)
+        fWrite.write(s + '\n')
+        
+# Validate hits
+# This code block is temporary, and will be replaced with NLP
+def validateBusinessEntry(s, l, df, cutoff=90):
+    busNames_list = df['OutbreakLocation'].tolist()
+    busNames_address = df['OutbreakLocationAddress'].tolist()
+    if s in busNames_list:
+        s_idx = busNames_list.index(s)
+        print('exact match found')
+        return True
+    busEntries = [x.upper() for x in l]
+    s_fz = s.upper()
+    v = process.extract(s_fz, busEntries)
+    filtered_res = [x[1] for x in v]
+    filtered_res = list(filter(lambda x: x > cutoff, filtered_res))
+    if filtered_res:
+        return True
+    else:
+        return False
+
+bus_list = []
+with open('parsed_addresses.04192021.csv') as fOpen:
     for i in fOpen:
         i = i.rstrip('\r\n')
-        iSplit = i.split('|')
-        ner_name = iSplit[1]
-        g_matches = iSplit[2:]
-        if len(g_matches) == 1:
-            g_matches.append('None')
-            g_matches.append('None')
-        elif len(g_matches) == 2:
-            g_matches.append('None')
-        else:
-            g_matches = g_matches
-        matches_NER.append(g_matches)
-        list_NER.append(ner_name)
-
-fuzzyResults = fuzzyMatch(list_matchStrings, matches_NER)
-matchedResults = []
-for x in range(len(fuzzyResults)):
-    if fuzzyResults[x] is not None:
-        # print(fuzzyResults[x])
-        matchedResults.append([fuzzyResults[x]])
-        # matchedResults.append(fuzzyResults[x])
+        bus_list.append(i)    
+# fuzzy match
+validatedList = []
+notValidatedList = []
+for i in res_filtered:
+    validatedEntry = False
+    if i[1][0] is None:
+        print('skipping ' + str(i[0]))
+        continue
+    if len(i[1]) == 1:
+        address2Check = i[1][0][0] + ' ' + i[1][0][1]
+        address2Check = address2Check.replace('.','')
+        checkedEntry = validateBusinessEntry(address2Check, bus_list, parsed_df_bus_addresses)
+        if checkedEntry:
+            validatedEntry = True
     else:
-        
-        tmp = [matches_NER[x][0]]
-        tmp.append('None')
-        tmp.append('None')
-        matchedResults.append(matches_NER[x])
-ct = 0
-for i in range(len(matchedResults)):
-    str_out = matchedResults[i][0]
-    if len(matchedResults[i][0]) < 4:
-        str_out = ','.join(matchedResults[i][0])
-    print(str(ct),list_matchStrings[i],str_out)
-    ct += 1               
+        for v in i[1]:
+            address2Check = v[0] + ' ' + v[1]
+            address2Check = address2Check.replace('.','')
+            checkedEntry = validateBusinessEntry(address2Check, bus_list, parsed_df_bus_addresses)
+        if checkedEntry:
+            validatedEntry = True
+    if validatedEntry:
+        validatedList.append(i)
+    else:
+        notValidatedList.append(i)
+print('Validation Scan Complete')
+print(str(len(validatedList)) + ' entries were validated, ' + str(len(notValidatedList)) + ' entries were not validated.')
+
+# End code block
