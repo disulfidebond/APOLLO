@@ -104,20 +104,20 @@ def createDataList(nCol, tCol, inCol, itCol, sCol, filterList=[]):
   filteredCount = 0
   unfilteredCount = 0
   results_lol = []
-  for i in range(1, len(iCol)):
+  for i in range(1, len(inCol)):
     if not filterList:
-      iList = list(set(iCol[i]))
+      iList = list(set(inCol[i]))
       iList = list(filter(lambda x: x != '', iList))
-      x = (nCol[i], tCol[i], iCol[i], sCol[i], iList, (i,i))
+      x = (nCol[i], tCol[i], itCol[i], sCol[i], iList, (i,i))
       results_lol.append(x)
     else:
       # untested
       if typeCol[i] in filterList:
         # COMMENT: This prevents clustering errors
         # from duplicated entries but does not preserve order.
-        iList = list(set(iCol[i]))
+        iList = list(set(inCol[i]))
         iList = list(filter(lambda x: x != '', iList))
-        x = (nCol[i], tCol[i], iCol[i], sCol[i], iList, (i,filteredCount))
+        x = (nCol[i], tCol[i], itCol[i], sCol[i], iList, (i,filteredCount))
         results_lol.append(x)
         filteredCount += 1
       else:
