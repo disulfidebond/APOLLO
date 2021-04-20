@@ -130,8 +130,7 @@ def createDataList(nCol, tCol, iCol, sCol, filterList=[]):
 
 results_lol = createDataList(nameCol, typeCol, iterationsCol, scoreCol, filterList=[])
 
-print('results_lol is')
-print(results_lol[0:5])
+
 # import dataset to pull lat/lng coordinates
 df = pd.read_csv(args.patients, sep='|', dtype={'IncidentID': 'int', 'Latitude': 'float', 'Longitude': 'float'})
 print(df.head())
@@ -144,7 +143,6 @@ resList = []
 resNames = []
 dup_Ct = 0
 
-time.sleep(60)
 
 internalListFile = 'internalList.GooglePlaces.' + ts_string + '.txt'
 with open(internalListFile, 'a') as fWrite:
