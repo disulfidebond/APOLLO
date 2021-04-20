@@ -225,7 +225,7 @@ for i in resList:
     ll_string = '|'.join(ll_list)
   else:
     ll_string = str(i[1][0][0]) + ',' + str(i[1][0][1]) + '|'
-  print(str(ct) + ',' + str(i[0]) + ',' + ll_string)
+  # print(str(ct) + ',' + str(i[0]) + ',' + ll_string)
   with open(list4GooglePlacesFile, 'a') as fWrite:
     fWrite.write(str(ct) + ',' + str(i[0]) + ',' + ll_string + '\n')
   ct += 1
