@@ -1,0 +1,73 @@
+ACADEMIC SOFTWARE END USER LICENSE AGREEMENT
+For “APOLLO - Automated Public Outbreak Localization through Lexical Operations” (“SOFTWARE”)
+By downloading our APOLLO software, your organization (“Recipient”) has read the following software 
+end user license agreement, and agrees to receive and use the above-identified SOFTWARE subject 
+to the following terms, obligations and restrictions. 
+
+1.	Originators of the SOFTWARE.  Provider, the University of Wisconsin ("UW"), owns or otherwise has the right 
+to license certain rights in the SOFTWARE (“Provider’s Rights”) and is willing to license its rights in the 
+SOFTWARE to the Recipient to use free of charge solely for public health and academic, non-commercial research 
+purposes subject to the terms and conditions outlined herein. The SOFTWARE was created at the University of 
+Wisconsin ("UW") by Majid Afshar, John Caskey, Iain McConnell, and Matthew Churpek.
+
+2.	Limited License.  Provider hereby grants to Recipient a non-commercial, non-transferable, royalty-free, 
+non-exclusive license, without the right to sublicense, under Provider’s Rights to install, execute and use the 
+SOFTWARE solely for RECIPIENT’s benefit and as necessary for RECIPIENT’s public health and academic, non-commercial 
+research purposes.  SOFTWARE may not be used, directly or indirectly, to perform services for a fee or for the 
+production or manufacture of products for sale to third parties. The foregoing license does not include any 
+license to third party intellectual property that may be contained in the SOFTWARE; obtaining a license to such 
+rights is Recipient’s responsibility. 
+
+3.	Restrictions on SOFTWARE use and distribution.  Recipient shall not use the SOFTWARE for any commercial purposes
+whatsoever. Recipient must fully reproduce and not obscure, alter or remove any of the Provider’s proprietary 
+notices that appear on the SOFTWARE, including copyright notices or additional license terms included with any the 
+third party software contained in the SOFTWARE. Recipient may not provide any third party with access to the SOFTWARE
+or use the SOFTWARE on a timeshare or service bureau basis. Recipient represents that it is compliance with all 
+applicable export control provisions and is not prohibited from receiving the SOFTWARE. 
+
+4.	Reservation of rights.  Provider retains all rights and title in the SOFTWARE, including without limitation 
+all intellectual property rights (e.g., patent, copyright and trade secret rights) that may now or in the future 
+exist in the SOFTWARE, regardless of form or medium. Nothing in this Agreement grants Recipient any additional 
+rights to the SOFTWARE, any right to obtain any updates or new releases of the SOFTWARE, any commercial license for 
+the SOFTWARE, or any other intellectual property owned or licensed by Provider. Provider has no obligation to provide 
+any support, updates, or bug fixes.
+
+5.	Disclaimer of Warranty. PROVIDER IS PROVIDING THE SOFTWARE TO RECIPIENT ON AN “AS IS” BASIS. PROVIDER MAKES 
+NO REPRESENTATIONS OR WARRANTIES CONCERNING THE SOFTWARE OR ANY OUTCOME THAT MAY BE OBTAINED BY USING THE SOFTWARE, 
+AND EXPRESSLY DISCLAIMS ALL SUCH WARRANTIES, INCLUDING WITHOUT LIMITATION ANY EXPRESS OR IMPLIED WARRANTY OF 
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT OF INTELLECTUAL PROPERTY RIGHTS. PROVIDER 
+MAKES NO WARRANTY THAT THE SOFTWARE WILL OPERATE ERROR FREE OR UNINTERRUPTED.
+
+6.	Limitation of Liability; Indemnity.  TO THE FULLEST EXTENT PERMITTED BY LAW, IN NO EVENT SHALL PROVIDER BE LIABLE 
+TO RECIPIENT FOR ANY LOST PROFITS OR ANY DIRECT, INDIRECT, EXEMPLARY, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL DAMAGES 
+ARISING FROM THE SOFTWARE OR ITS USE. FURTHERMORE, IN NO EVENT WILL PROVIDER’S LIABILITY TO RECIPIENT EXCEED $100. 
+PROVIDER HAS NO LIABILITY FOR ANY DECISION, ACT OR OMISSION MADE BY RECIPIENT AS A RESULT OF USE OF THE SOFTWARE. 
+To the extent permitted by applicable law, Recipient agrees to indemnify, defend and hold harmless Provider, UW, and 
+the SOFTWARE authors against all claims and expenses, including legal expenses and reasonable attorneys fees, arising 
+from Recipient’s use of the SOFTWARE.  
+
+7.	No use of names/trademarks.  Recipient shall not use Provider’s name, or the name of any author of the SOFTWARE 
+or that of UW, in any manner without the prior written approval of the entity or person whose name is being used.
+
+8.	Termination.  Without prejudice to any other rights, Provider may terminate this Agreement if Recipient fails 
+to comply with the terms of this Agreement for any reason. Upon termination for any reason, Recipient must 
+immediately destroy all copies of the SOFTWARE in Recipient’s possession, custody, or control.
+
+If you have any questions regarding the terms of this agreement, please contact:
+Madeline Oguss, MS
+Administrative Program Specialist 
+Division of Allergy, Pulmonary, and Critical Care
+Department of Medicine
+School of Medicine and Public Health
+University of Wisconsin-Madison 
+Office Phone: 608-265-2878
+Email: mkoguss AT medicine DOT wisc DOT edu
+
+John R Caskey, PhD
+Senior Data Scientist
+Division of Allergy, Pulmonary, and Critical Care
+Department of Medicine
+School of Medicine and Public Health
+University of Wisconsin-Madison
+Office Phone: 608-265-3438
+Email: jrcaskey AT medicine DOT wisc DOT edu
