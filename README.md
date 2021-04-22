@@ -4,15 +4,15 @@ APOLLO (Automated Public Outbreak Localization through Lexical Operations) is a 
 # Description of Output
 The output columns are listed below, with descriptions:
 
-* Name: The name identified from data entered into WEDSS
-* Type: The type of NER term, which is one of: Organization, Location, Miscellaneous.
-* Iterations: How many iterations the NER workflow used.
-* NER_Score: This score describes how confident the NER pipeline is in identifying a location or business.
-* Incidents: The IncidentID's that are linked to the NER term in column 1.
-* Outbreaks: The Outbreak identifiers associated with the IncidentIDs.
+* Name: The named entity extracted directly from the text fields of contact interviews, including Investigation Notes (retrieved from WEDSS).
+* Type: The type of named entity, which is one of: Organization, Location, Miscellaneous.
+* Iterations: The number of unique instances for the named entity within the 1-week time peroid.
+* NER_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
+* Incidents: The IncidentID's that are linked to the named entities from column 1.
+* Outbreaks: The unique Outbreak identifiers associated with the IncidentIDs (can be one-to-one or many-to-one fuzzy match between the two).
 * ZipCode: The Zip Code associated with the identified business(es) from Google Mapping
 * County: The County associated with the identified business(es) from Google Mapping
-* Mapping1: The top hit for mapping.
+* Mapping1: The top match for mapping.
 * Mapping1_Confidence: The confidence score for the mapping results for the top mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result.
 * Mapping2: The second best mapping result, note this may be empty if only one mapping hit was found.
 * Mapping2_Confidence: The confidence score for the mapping results for the second best mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result.
