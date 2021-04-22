@@ -23,3 +23,8 @@ The output columns are listed below, with descriptions:
 ![](https://github.com/disulfidebond/APOLLO/blob/main/media/APOLLO_README_fig.png)
 
 To run APOLLO, provide the required input files and run `python apollo`.
+
+
+# AMIA 2021 Abstract Submission
+![](https://github.com/disulfidebond/APOLLO/blob/main/media/Abstract_page1.jpg)
+![](https://github.com/disulfidebond/APOLLO/blob/main/media/Abstract_page2.jpg)
