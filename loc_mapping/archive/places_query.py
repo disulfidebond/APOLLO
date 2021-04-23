@@ -13,12 +13,10 @@ from fuzzywuzzy import process
 
 t_stamp = time.time()
 t_stamp_string = datetime.datetime.fromtimestamp(t_stamp).strftime('%Y%m%d_%H%M%S')
-# apikey = 'AIzaSyBG_Js3Fv3zJrCCZErdWLRoQnGqram8RG0'
 # Part 0: Functions
 
 t_stamp = time.time()
 t_stamp_string = datetime.datetime.fromtimestamp(t_stamp).strftime('%Y%m%d_%H%M%S')
-apikey = 'AIzaSyBG_Js3Fv3zJrCCZErdWLRoQnGqram8RG0'
 # Part 0: Functions
 
 def mapDaneCountyLocation(apikey, location_lat, location_lng, radius_in_meters, debug_mode=False, next_page_token=None, locString=None):
