@@ -10,8 +10,8 @@ The output columns are listed below, with descriptions:
 * NER_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
 * Incidents: The IncidentID's that are linked to the named entities from column 1.
 * Outbreaks: The unique Outbreak identifiers associated with the IncidentIDs (can be one-to-one or many-to-one fuzzy match between the two).
-* ZipCode: The Zip Code associated with the identified business(es) from Google Mapping
-* County: The County associated with the identified business(es) from Google Mapping
+* ZipCode: The Zip Code associated with the identified Incident IDs
+* County: The County associated with the identified Incident IDs
 * Mapping1: The top match for mapping.
 * Mapping1_Confidence: The confidence score for the mapping results for the top mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result.
 * Mapping2: The second best mapping result, note this may be empty if only one mapping hit was found.
