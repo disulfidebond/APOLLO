@@ -33,5 +33,8 @@ To generate an output file for the location mapping, the python script filter_se
 Next, the Google Maps API is used to scan for businesses matching to the NER term within a 20 km radius of the centroid. If no results are found, then the search is repeated for 30 km. Matches for all clusters are gathered, and fuzzy string matching is used to select up to the top 3 hits to the NER term among all matches. Finally, these top 3 hits are validated against the business database text file that was created during preprocessing, and an output file is created with the business names that are near the IncidentID cluster.
 
 # Cases Report
+
 ![](https://github.com/disulfidebond/APOLLO/blob/main/media/APOLLO_DEV_README_fig3.png)
+
+
 Finally, the ZipCodes and County names from preprocessing are mapped back to the mapping results as columns, and this is merged with the NER report.
