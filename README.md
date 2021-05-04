@@ -4,7 +4,7 @@ APOLLO (Automated Public Outbreak Localization through Lexical Operations) is a 
 # Description of Output
 The output columns are listed below, with descriptions:
 
-* Name: The named entity extracted directly from the text fields of contact interviews, including Investigation Notes (retrieved from WEDSS).
+* Name: The named entity extracted directly from the text fields of contact interviews, including Investigation Notes (retrieved from WEDSS). These are limited to potential organizations, locations, or miscellaneous.
 * Type: The type of named entity, which is one of: Organization, Location, Miscellaneous.
 * Iterations: The number of unique instances for the named entity within the 1-week time peroid.
 * Name_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
