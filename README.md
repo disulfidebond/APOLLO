@@ -10,8 +10,6 @@ The output columns are listed below, with descriptions:
 * Name_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
 * IncidentIDs: The IncidentID's that are linked to the named entities from column 1.
 * Outbreaks: Ongoing OutbreakIDs by health departments to avoid redundancy. The unique Outbreak identifiers associated with the IncidentIDs (can be one-to-one or many-to-one fuzzy match between the two).
-* ZipCode: The Zip Code associated with the identified Incident IDs
-* County: The County associated with the identified Incident IDs
 * Address1: The top match for mapping an address to the name. FILTERED means no match found with confidence.
 * Confidence1: The confidence score for the mapping results for the top mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result.
 * URL1: google map hyperlink for address1
@@ -21,6 +19,8 @@ The output columns are listed below, with descriptions:
 * Address3: The third best mapping result, note this may be empty. FILTERED means no match found with confidence.
 * Confidence3: The confidence score for the mapping results for the second best mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result. 
 * URL3: google map hyperlink for address3
+* ZipCode: The Zip Code associated with the identified Incident IDs
+* County: The County associated with the identified Incident IDs
 
 # Usage
 ![](https://github.com/disulfidebond/APOLLO/blob/main/media/APOLLO_README_fig.png)
