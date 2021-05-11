@@ -10,6 +10,9 @@ The output columns are listed below, with descriptions:
 * Name_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
 * IncidentIDs: The IncidentID's that are linked to the named entities from column 1.
 * Outbreaks: Ongoing OutbreakIDs by health departments to avoid redundancy. The unique Outbreak identifiers associated with the IncidentIDs (can be one-to-one or many-to-one fuzzy match between the two).
+* OutbreakIDs: numeric IDs from WEDSS for each outbreak in Outbreaks column
+* OutbreakLocations: Location from WEDSS data (where it exists) for each outbreak in the Outbreaks column
+* OutbreakProcessStatuses: Outbreak process status (e.g. New, Open Local Investigation, Final)  from WEDSS data for each outbreak in the Outbreaks column
 * Address1: The top match for mapping an address to the name. FILTERED means no match found with confidence.
 * Confidence1: The confidence score for the mapping results for the top mapping hit. A score greater than 80 is very confident, a score of 100 is a perfect match between the provided NER term and the mapping result.
 * URL1: google map hyperlink for address1
