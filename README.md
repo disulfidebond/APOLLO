@@ -8,7 +8,7 @@ The output columns are listed below, with descriptions:
 
 * Type: The type of named entity, which is one of: Organization, Location, Miscellaneous.
 
-* Iterations: The number of unique instances for the named entity within the 1-week time peroid.  To represent a potential cluster, we are only reporting two or more IncidentIDs
+* Iterations: The number of unique instances for the named entity within the 1-week time peroid.  To represent a potential cluster, we are only reporting Names associated with two or more IncidentIDs
 
 * Name_Score: The average predicted probability (confidence score) from the model for the named entity (Score range 0-100, with 100 being highest confidence).
 
