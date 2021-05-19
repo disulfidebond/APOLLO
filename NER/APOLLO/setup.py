@@ -14,7 +14,9 @@ setup(
     python_requires='>=3.8.5',
     install_requires=[
         'tqdm',
+        'torch',
         'transformers',
         'fuzzywuzzy'
+
     ]
 )

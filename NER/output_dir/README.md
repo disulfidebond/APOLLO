@@ -1,2 +1,2 @@
 ## Output folder
-All APOLLO output is placed here by default.
+All APOLLO NER Pipeline output is placed here by default.
