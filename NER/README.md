@@ -1,14 +1,24 @@
-# APOLLO
-## Automated Public Outbreak Localization though Lexical Operations
-### NER Pipeline
+# APOLLO - Automated Public Outbreak Localization though Lexical Operations
+## NER Pipeline
 
-
+### Install Pipeline Code:
 in APOLLO/
+```bash
 pip install -e .
+```
 
+Run NER pipeline:
 in project root:
-python run_apollo_example.py
+```bash
+bash run_apollo_example.sh
+```
 
+for help:
+```bash
+bash run_apollo_example.sh --help
+```
+
+### NER Pipeline Output
 Given specific WEDSS extract files:
 1. Identify all confirmed or probable IncidentIDs pertaining to a specified week
 2. Find all relevant text for those IncidentIDs in the WEDSS contact tracing interview text (current feed includes over 25 character string fields concatenated together.  Please refer to data dictionary for more details).
@@ -20,9 +30,8 @@ Given specific WEDSS extract files:
 8. Export CSV.
 
 Example output:
-|Named entity|Type|Iterations|Score|IncidentIDs|Outbreak Entity|
-|--|--|--|--|--|--|
-|Sun Prairie|Location |12|0.67|['12345','79900',...]|sun prairie||
-|local retailer|Organization|7|0.54|['23245','23345'..]|local retailer|
+|Named entity|Type|Iterations|Score|IncidentIDs|Outbreak Name|Outbreak ID|Outbreak Location|Outbreak Process Status
+|--|--|--|--|--|--|--|--|--|
+|Sun Prairie|Location |12|0.67|['12345','79900',...]|2020_DANE_SUN_PRARIE|9784563|Street Address|Final
+|local retailer|Organization|7|0.54|['23245','23345'..]|2020_DANE_LOCAL_RETAILER|9563784|Street Address| Local Investigation In Progess|
 |fast food place|Organization|3|0.45|['23456','67111']||
-
