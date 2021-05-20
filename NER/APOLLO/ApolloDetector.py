@@ -985,7 +985,7 @@ class ApolloDetector(object):
         """
         updated_entities = {k: v for k, v in entities.items() if len(k) > 3}
         updated_entities = {k: v for k, v in updated_entities.items()
-                            if not re.match(r"\w+ (Road|Rd|Street|St|Avenue|Ave|Drive|Dr)$", k)}
+                            if not re.match(r"\w+ (Road|Rd|Street|St|Avenue|Ave|Drive|Dr)$", ' '.join(k.split()[-2:]))}
         return updated_entities
     
     def create_stop_entities(self, min_df:float=5, specific_terms:List=None):
