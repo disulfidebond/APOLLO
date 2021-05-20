@@ -15,7 +15,7 @@ bash run_apollo_example.sh
 
 for help:
 ```bash
-bash run_apollo_example.sh --help
+python run_apollo_example.py --help
 ```
 
 ### NER Pipeline Output
