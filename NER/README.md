@@ -18,6 +18,11 @@ for help:
 python run_apollo_example.py --help
 ```
 
+help output:
+```bash
+here
+```
+
 ### NER Pipeline Output
 Given specific WEDSS extract files:
 1. Identify all confirmed or probable IncidentIDs pertaining to a specified week
