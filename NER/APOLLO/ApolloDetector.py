@@ -7,7 +7,7 @@ from datetime import datetime, date, timedelta
 import calendar
 from collections import Counter
 import string
-
+import click
 
 from NERPipeline import NERPipeline
 import re
@@ -18,7 +18,7 @@ import statistics
 import pandas as pd
 
 
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 import logging
 
@@ -53,18 +53,37 @@ class ApolloDetector(object):
     outbreaks: dictionaru of outbreak dictionaries by incidentID {incidentID:{'outbreakID ':###, 'OutbreakLocation':###, etc)
     """
     def __init__(self, data_folder:str, 
-                 output_path:str,
                  nlp_fields_file:str,
+                 output_path:str=False,
                  stop_entities_file:str=False,
                  file_prefix:str='',
-                 stop_entities_run=False):
+                 stop_entities_run=False,
+                 final_report_only=True):
 
         if not stop_entities_run:
             assert Path(data_folder).is_dir(), f'{self.data_folder.absolute()} is not a valid directory'
             self.file_paths = self.get_file_names(data_folder)
             
-            self.output_path = Path(output_path)
+            
+            if output_path:
+                logger.info(f'output path path specified: {output_path}')
+                assert not re.match(r"[\<\>\:\"\|\?\*\#\']",output_path), f"file_prefix contains an illegal character: ['<','>',':','\"',,'|','?','*','#,''']"
+                # if output_path doesn't exist create it.
+                
+                Path(output_path).mkdir(parents=True, exist_ok=True)
+                self.output_path = Path(output_path)
+            
+            # default output dir is current date: output_dir/YYYYMMDD
+            if not output_path:
+                output_path = 'output_dir/' + date.today().strftime("%Y%m%d")
+                logger.info(f'output_path defaults to: {output_path}')
+                
+                # if output_path doesn't exist create it.
+                Path(output_path).mkdir(parents=True, exist_ok=True)
+                self.output_path = Path(output_path)
+
             assert self.output_path.is_dir(), f'{self.output_path.absolute()} is not a valid directory'        
+
             
             nlp_fields_file = Path(nlp_fields_file)
             self.nlp_fields = self.get_nlp_fields(nlp_fields_file)
@@ -75,13 +94,15 @@ class ApolloDetector(object):
                 self.stop_entities = self.get_stop_entities_from_file(stop_entities_file)
             
             assert isinstance(file_prefix, str), f'{file_prefix} is not a str'
-            # TODO: assert no char in file_prefix == ['<','>',':','\"','\\','/','|','?','*'] 
+            assert not re.match(r"[\<\>\:\"\\\/\|\?\*\#\']",file_prefix), f"file_prefix contains an illegal character: ['<','>',':','\"','\\','/','|','?','*','#',''']"
             if file_prefix:
                 self.file_prefix = file_prefix + '_'
             else:
                 self.file_prefix = file_prefix
             
             self.nlp = NERPipeline()
+            
+        self.final_report_only = final_report_only
 
         if stop_entities_run:
             raise NotImplementedError()
@@ -186,26 +207,36 @@ class ApolloDetector(object):
         :param sep: separator to use default=','
         :param date: include date between filename and extension default true
         :ext: file suffix default .csv but choose what you want e.g. .txt
-        """       
-        date_string = ''
-        if add_date:
-            date_string = '_'+datetime.strftime(datetime.now(),'%Y-%m-%d_%H_%M')
+        """
+        export_file = False
+        if self.final_report_only:
+            if file_name=='final_report':
+                export_file=True
             
-        write_path = self.output_path / (self.file_prefix + file_name + date_string + ext)
-   
-        with write_path.open("w") as csvfile:
-            csvwriter=csv.writer(csvfile,delimiter=sep)
-            # write header row
-            csvwriter.writerow(columns)
-            # write data
-            for k, v in d.items():
-                output_list = [k]                    
-                if hasattr(v, '__iter__') and not isinstance(v,str):
-                    for val in v:
-                        output_list.append(val)
-                else:
-                    output_list.append(v)
-                csvwriter.writerow(output_list)
+        if not self.final_report_only:
+            export_file=True
+        
+        if export_file:
+
+            date_string = ''
+            if add_date:
+                date_string = '_'+datetime.strftime(datetime.now(),'%Y-%m-%d_%H_%M')
+                
+            write_path = self.output_path / (self.file_prefix + file_name + date_string + ext)
+       
+            with write_path.open("w") as csvfile:
+                csvwriter=csv.writer(csvfile,delimiter=sep)
+                # write header row
+                csvwriter.writerow(columns)
+                # write data
+                for k, v in d.items():
+                    output_list = [k]                    
+                    if hasattr(v, '__iter__') and not isinstance(v,str):
+                        for val in v:
+                            output_list.append(val)
+                    else:
+                        output_list.append(v)
+                    csvwriter.writerow(output_list)
 
 
     def set_date_range(self, day, period) -> List:
@@ -219,19 +250,19 @@ class ApolloDetector(object):
                             'all': returns string 'all' rather than list of dates - date checker function 'date_in_range' knows what that means .
         :return: self.date_range = List of datetimes
         """
+        
         try:
             d=day.split(" ")
             d=d[0]
             d=(datetime.strptime(d,'%Y-%m-%d'))
             d=d.date()
-            logger.debug(f'day: {day}, period:{period}')
             if period == 'week':
                 day_of_week = d.isocalendar()[2]-1
                 start_date = d - timedelta(days=day_of_week)
                 self.date_range = [start_date + timedelta(days=i) for i in range(7)]
             if period == 'trailing_seven_days':
                 start_date = d
-                self.date_range = [start_date - timedelta(days=i) for i in range(7)]  
+                self.date_range = [start_date - timedelta(days=i) for i in range(7)]                  
             if period == 'month':
                 number_of_days = calendar.monthrange(d.year,d.month)[1]
                 self.date_range = [date(d.year, d.month, day) for day in range(1, number_of_days+1)]
@@ -407,13 +438,20 @@ class ApolloDetector(object):
                 v = re.sub(r"(Mon|Tue|Wed|Thu|Fri|Sat|Sun) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d?\d (19|20)\d\d \d\d:\d\d:\d\d GMT-0\d00 \(Central (Standard|Daylight) Time\)", 
                            '', 
                            v)
+                v = re.sub(r"Central Daylight Time", '', v)
                 # remove |Y(|Y|Y|Y...) from input text
                 v = re.sub(r"(\|[Y])+", '', v)
                 
                 # remove contact tracers names: ORGLast, First 
                 v = re.sub(r"MAXIM\w+, \w+,", '', v)
                 v = re.sub(r"UHS\w+, \w+,", '', v)
+                v = re.sub(r' MAXIM ', ' ', v)
+                
                 processed_wedss_text[k] = v
+        
+        self.dict_to_csv(processed_wedss_text, 
+                         ['incidentID', 'Processed WEDDS Text'], 
+                         'processed_WEDDS_text')
         
         return processed_wedss_text
 
@@ -452,7 +490,7 @@ class ApolloDetector(object):
     def load_all_outbreak_data(self):
         """
         load all outbreak data for any outbreak row with incidentID in report 
-        incidentIDs list
+        incidentIDs dict
         create self.outbreaks attribute - dict of dicts:
         {'IncidentID':{'OutbreakID ':###,'Outbreak#':##,'OutbreakLocation':##,
                        'OutbreakLocationType':##,'OutbreakLocationAddress': ##,
@@ -462,6 +500,7 @@ class ApolloDetector(object):
         # TODO: basic data integrity checks - column names, row counts
         incident_id_column_name = 'IncidentID' 
         incident_id_index = None
+        self.outbreak_stats = {}
         self.outbreaks = {}
 
         with self.file_paths['outbreak'].open('r', encoding='ISO-8859-1') as csvfile:
@@ -485,8 +524,53 @@ class ApolloDetector(object):
                         self.outbreaks[incident_id] = {}
                         for column_name in column_names:
                             self.outbreaks[incident_id][column_name] = row[name_to_index[column_name]]
-                    
-                    
+        
+        self.outbreak_stats['total_outbreaks_for_all_incident_ids'] = len(self.outbreaks)
+        
+        unique_outbreaks = {v['Outbreak#']:1 for k,v in self.outbreaks.items()}
+        
+        self.outbreak_stats['unique_outbreaks_for_all_incident_ids'] = len(unique_outbreaks)
+        
+        
+    
+    def map_incidents_to_outbreaks(self) -> Tuple[Dict, Dict]:
+        """
+        process outbreak data into dicts 
+        :return:return two dicts mapping inicdnet IDs to OutbreakID and 
+            outbreakIDs to outbreak NERS
+        :return type: Dict, Dict
+        """
+        incidents_to_outbreaks = {}
+        outbreaks_to_ners = {}
+        for incident_id, row in self.outbreaks.items():
+            # map incidentID to outbreakID - only for incident IDs that we're looking at (in out Dict)
+
+            outbreak_id = row['Outbreak#']
+            incidents_to_outbreaks[incident_id] = outbreak_id  # this is essentially the self.outbreaks dict!
+            
+            # map outbreakID to pre-NER string incorporating outbreak location information - typically organization name
+            # id structure typically all caps YEAR-COUNTY BUSINESS NAME | split into: year County| Business Name| Location
+            # TODO: drop year County here - never informative.
+            outbreak_location = row['OutbreakLocation']
+            preprocessed_outbreak_id = outbreak_id.replace('-',' ').title().split()    
+            preprocessed_outbreak_id.insert(2, '|')
+            preprocessed_outbreak_id = ' '.join(preprocessed_outbreak_id) + '| ' + outbreak_location
+            outbreaks_to_ners[outbreak_id] = preprocessed_outbreak_id
+
+           
+        # replaced preprocessed_outbreaks_ids with NER results
+        # dict of outbreakbreakidL NERS for htat outbreak - for all outbreaks that can be linked to a current/relevant incidentID
+        outbreaks_to_ners = self.BERTNER(outbreaks_to_ners)
+        
+        # limit NER results to just the entities, remove the types and scores.
+        # TODO: confirm filtering still necessary here if ((x!="") and (x[0]!="#"), move into NERPipeline
+        for outbreak_id, ner_result in outbreaks_to_ners.items():
+            outbreaks_to_ners[outbreak_id] = [x for x in outbreaks_to_ners[outbreak_id][0] if ((x!="") and (x[0]!="#"))]
+        
+        self.outbreak_stats['associated outbreak count'] = len(outbreaks_to_ners)
+        
+        return incidents_to_outbreaks, outbreaks_to_ners
+                               
     def find_associated_known_outbreak_ids(self, namedic:Dict) -> Dict:
         """
         for a given dictionary of NER entities and associated incidentIDs find all known outbreak IDs associated with that key and incidentIDs
@@ -495,64 +579,10 @@ class ApolloDetector(object):
         :return: {NERentity: [outbreak_id, outbreak_id, ...}
         :type return: Dict
         """
-        self.load_all_outbreak_data()  # populates: self.outbreaks
-        # relevant column names in outbreak_id file
-        incident_id_column_name = 'IncidentID' 
-        outbreak_id_column_name = 'Outbreak#'
-        outbreak_location_column_name = 'OutbreakLocation'
-        
-        incident_id_index = None
-        outbreak_id_index = None
-        location_name_index = None
-
-        incidents_to_outbreaks = {}
-        outbreaks_to_ners = {}
-        
-        self.outbreak_stats = {}
         
         outbreak_match_ratio = 66
-
-        # get all outbreaks in outbreak file
-        # TODO: refactor with self.outbreaks from self.load_all_outbreak_data() to avoid reading outbreaks file twice
-        with self.file_paths['outbreak'].open("r", encoding='ISO-8859-1') as csvfile:
-            csvreader=csv.reader(csvfile, delimiter="|")
-            for row_counter, row in enumerate(csvreader):
-                if row_counter == 0:  # if header row get indexes for the two columns we want
-                    try:
-                        logger.info('opened outbreak_id file, header row: %s', str(row))
-                        incident_id_index = row.index(incident_id_column_name)
-                        outbreak_id_index = row.index(outbreak_id_column_name)
-                        location_name_index = row.index(outbreak_location_column_name)
-                    except (ValueError):
-                        logger.error('Failed reading outbreak file %s: one of %s, %s, %s, not found in %s', self.file_paths['outbreak'], incident_id_column_name, outbreak_id_column_name, outbreak_location_column_name, str(row))
-                else:
-                    # map incidentID to outbreakID - only for incident IDs that we're looking at (in out Dict)
-                    incident_id = row[incident_id_index]
-                    if incident_id in self.ids:
-                        outbreak_id = row[outbreak_id_index]
-                        incidents_to_outbreaks[incident_id] = outbreak_id  # this is essentially the self.outbreaks dict!
-                        
-                        # map outbreakID to pre-NER string incorporating outbreak location information - typically organization name
-                        # id structure typically all caps YEAR-COUNTY BUSINESS NAME | split into: year County. Business Name. Location
-                        # TODO: drop year County here - never informative.
-                        outbreak_location = row[location_name_index]
-                        preprocessed_outbreak_id = outbreak_id.replace('-',' ').title().split()    
-                        preprocessed_outbreak_id.insert(2, '.')
-                        preprocessed_outbreak_id = ' '.join(preprocessed_outbreak_id) + '. ' + outbreak_location
-                        outbreaks_to_ners[outbreak_id] = preprocessed_outbreak_id
-                    else:
-                        pass
-           
-        # replaced preprocessed_outbreaks_ids with NER results
-        # dict of outbreakbreakidL NERS for htat outbreak - for all outbreaks that can be linked to a current/relevant incidentID
-        outbreaks_to_ners = self.BERTNER(outbreaks_to_ners)
-
-        # limit NER results to just the entities, remove the types and scores.
-        # TODO: confirm filtering still necessary here if ((x!="") and (x[0]!="#"), move into NERPipeline
-        for outbreak_id, ner_result in outbreaks_to_ners.items():
-            outbreaks_to_ners[outbreak_id] = [x for x in outbreaks_to_ners[outbreak_id][0] if ((x!="") and (x[0]!="#"))]
-        
-        self.outbreak_stats['associated outbreak count'] = len(outbreaks_to_ners)
+        self.load_all_outbreak_data()  # populates: self.outbreaks        
+        incidents_to_outbreaks, outbreaks_to_ners = self.map_incidents_to_outbreaks()        
         
         # for all entities found by the NER pipeline look at WEDDS outbreak data
         # outbreak_ids_by_entity = {}  #{ entity:[list of outbreak ids]}
@@ -560,7 +590,6 @@ class ApolloDetector(object):
         for key in namedic:
             if key!="" and key[0]!="#":
                 # set up empty list to append to
-                # outbreak_ids_by_entity[key] = []
                 outbreak_data_by_entity[key] = []
                 # get all incident ids associated with each NER entity/key
                 incident_id_strs = [str(x).strip() for x in namedic[key]]
@@ -584,18 +613,7 @@ class ApolloDetector(object):
                         # outbreak_ids_by_entity[key].append('no match')
                         pass
         
-        # for outbreak in outbreak_ids_by_entity:
-       
-        # reporting stats for outbreak matching
-        # unique_outbreaks = {}
-
-        # for entity, outbreak_ids in outbreak_ids_by_entity.items():
-        #     for outbreak in outbreak_ids:
-        #         if outbreak in unique_outbreaks:
-        #             unique_outbreaks[outbreak] += 1
-        #         else:
-        #             unique_outbreaks[outbreak] = 1
-        
+        # for outbreak in outbreak_ids_by_entity:            
         unique_outbreaks_data = {}
         for entity, outbreak_data in outbreak_data_by_entity.items():
             for outbreak in outbreak_data:
@@ -604,8 +622,7 @@ class ApolloDetector(object):
                     unique_outbreaks_data[outbreak_id] += 1
                 else:
                     unique_outbreaks_data[outbreak_id] = 1
-
-        # self.outbreak_stats['unique outbreaks matched to NERS'] = len(unique_outbreaks)
+                    
         self.outbreak_stats['unique outbreaks matched to NERS from data_dict'] = len(unique_outbreaks_data)
         print(self.outbreak_stats)
         
@@ -703,7 +720,7 @@ class ApolloDetector(object):
         return collated_entities
     
     
-    def break_out_ner_results_per_entity(self):
+    def break_out_ner_results_per_entity(self) -> Tuple[Dict, Dict, Dict, Dict]:
         """
         create four dictionaries from self.ner_results
         countdic a count of every entity 
@@ -821,8 +838,12 @@ class ApolloDetector(object):
         typedic, scoredic, countdic, namedic = self.break_out_ner_results_per_entity()       
         outbreak_data_by_key = self.find_associated_known_outbreak_ids(namedic) 
 
-        all_keys = self.collate_entities_into_output_format(typedic, scoredic, countdic, namedic, outbreak_data_by_key)
-        all_keys = self.fuzzy_match_entities(all_keys, scorer=fuzz.token_set_ratio, match_cutoff=70)
+        all_keys = self.collate_entities_into_output_format(
+            typedic, scoredic, countdic, namedic, outbreak_data_by_key
+            )
+        all_keys = self.fuzzy_match_entities(
+            all_keys, scorer=fuzz.token_sort_ratio, match_cutoff=60
+            )
         all_keys = self.tidy_fuzzy_matched_results(all_keys)
 
         self.dict_to_csv(all_keys,
@@ -834,10 +855,12 @@ class ApolloDetector(object):
         if test_incident_entity_fuzzy_match_configs:
             match_cutoffs = range(60,81,5)
             print(f'match_cutoff: {list(match_cutoffs)}')
-            scorers = [{'name':'ratio', 'scorer':fuzz.ratio},
-                       {'name':'partial_ratio', 'scorer':fuzz.partial_ratio},
-                       {'name':'token_sort_ratio', 'scorer':fuzz.token_sort_ratio},  # was using this one originally at 70
-                       {'name':'token_set_ratio', 'scorer':fuzz.token_set_ratio}]
+            scorers = [
+                {'name':'ratio', 'scorer':fuzz.ratio},
+                {'name':'partial_ratio', 'scorer':fuzz.partial_ratio},
+                {'name':'token_sort_ratio', 'scorer':fuzz.token_sort_ratio},  # was using this one originally at 70
+                {'name':'token_set_ratio', 'scorer':fuzz.token_set_ratio}
+                ]
             
             results_dict = {'scorer_name':[], 
                             'match_cutoff':[],
@@ -849,9 +872,11 @@ class ApolloDetector(object):
             for scorer in scorers:
                 for cutoff in match_cutoffs:
                     
-                    matched_keys = self.fuzzy_match_entities(all_keys, 
-                                                             scorer=scorer['scorer'], 
-                                                             match_cutoff=cutoff)
+                    matched_keys = self.fuzzy_match_entities(
+                                    all_keys, 
+                                    scorer=scorer['scorer'], 
+                                    match_cutoff=cutoff
+                                    )
                    
                     results_len = len(matched_keys)
                     key_lens =  []
@@ -914,18 +939,12 @@ class ApolloDetector(object):
         processed_output = {}
         for k,v in fuzzy_matches.items():
             # set up variable names
-            # outbreaks=None
-            entities = k.split(',')
+            entities = k.split(',')  # restore this to combine entities
+            # entities = k  # delete this to combine entities
             types = self.flatten(v[0])
             iterations = self.flatten(v[1])
             scores = self.flatten(v[2])
-            # incidents=list(set(self.flatten(v[3])))
             incidents=self.flatten(v[3])
-            # try:
-            #     # outbreaks=list(set(self.flatten(v[4])))
-            #     outbreaks=self.flatten(v[4])
-            # except(IndexError):
-            #     outbreaks = []
             try:
                 outbreak_names=self.flatten(v[4])
             except(IndexError):
@@ -948,8 +967,11 @@ class ApolloDetector(object):
             max_index = iterations.index(max_iteration)
             
             # get each value corresponding with most common entity, sum iterations, avg scores
-            main_entity = entities[max_index]
-            main_type = types[max_index]
+            # main_entity = entities  # list all matched entities  
+            main_entity = entities[max_index]   # restore this to choose most common entity (ifn ot a most common just chooses first one?)
+            main_type = types[max_index]  # TODO: this is coming back None sometimes - why?
+            if not main_type:
+                  main_type = 'Miscellaneous'  
             summed_iterations = sum(iterations)
             average_score = sum(self.flatten(scores))/len(self.flatten(scores))
             incidents = self.flatten(incidents)
@@ -965,7 +987,6 @@ class ApolloDetector(object):
             processed_output[main_entity] = [
                 main_type, summed_iterations, average_score, incidents,  # outbreaks
                 outbreak_names, outbreak_ids, outbreak_locations,
-                outbreak_process_statuses
                 ]
         
         # sort dictionary to order by iterations largest to smallest.
@@ -980,12 +1001,15 @@ class ApolloDetector(object):
     def apply_stop_entities_rules(entities: Dict) -> Dict:
         """
         apply rules for entities processing to Dict of entities.
-        no entities 3 chars or less
-        no entities that are street names like 'word St' or 'token Drive'
         """
+        # TODO: collect rejected entities and incidents for output
         updated_entities = {k: v for k, v in entities.items() if len(k) > 3}
         updated_entities = {k: v for k, v in updated_entities.items()
-                            if not re.match(r"\w+ (Road|Rd|Street|St|Avenue|Ave|Drive|Dr)$", ' '.join(k.split()[-2:]))}
+                            if not re.match(r" (Road|Rd|Street|St|Avenue|Ave|Drive|Dr|Circle|Cr|Cir|Boulevard|Bl)\b", k)}
+        updated_entities = {k: v for k, v in updated_entities.items()
+                            if not re.match(r"^.*(COUNTY|County|county)$", k)}
+        updated_entities = {k: v for k, v in updated_entities.items()
+                            if not re.match(r"^.*(WI|WISCONSIN|Wisconsin)$", k)}
         return updated_entities
     
     def create_stop_entities(self, min_df:float=5, specific_terms:List=None):
@@ -1024,7 +1048,6 @@ class ApolloDetector(object):
                              f'stop_entities_list_min_df_{min_df}_pc')
             
             stop_entities = list(entities_by_doc_frequency.keys())
-            # print(f'stop_entities: {stop_entities}')
             
             self.stop_entities = stop_entities
             
@@ -1044,28 +1067,11 @@ class ApolloDetector(object):
                 'Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington',
                 'West Virginia','Wisconsin','Wyoming'
                 ]
-
-            
-            # any terms two chars or less
-            all_single_chars_lower = list(string.ascii_lowercase)
-            all_single_chars_upper = list(string.ascii_uppercase)
-            all_two_chars_lower = [y + z for y in all_single_chars_lower 
-                                             for x in all_single_chars_lower
-                                             for z in all_single_chars_lower]
-            all_two_chars_upper = [x.upper() for x in all_two_chars_lower]
-            all_two_chars_title = [x.title() for x in all_two_chars_lower]
-            all_two_chars = all_single_chars_lower + all_single_chars_upper +\
-                            all_two_chars_lower + all_two_chars_upper +\
-                            all_two_chars_title
       
-            specific_terms = wi_cities + wi_counties + us_states + all_two_chars
-                    
-      
-        # print(f'specific terms: {specific_terms}')
+            specific_terms = wi_cities + wi_counties + us_states
+                   
         self.stop_entities.extend(specific_terms)
-        # print(f'stop_entities: {stop_entities}')        
-        
-        
+            
         if not self.stop_entities:
             print('NO STOP ENTITIES FOUND!')
             stop_entities = ['|']
@@ -1139,7 +1145,7 @@ class ApolloDetector(object):
         self.ner_results = final_filtered
         
  
-    def run_pipeline(self, target_date:str, period:str='trailing_seven_days'):
+    def run_pipeline(self, report_date:str, period:str='trailing_seven_days'):
         """
         Run APOLLO detector with one call.
         
@@ -1151,7 +1157,7 @@ class ApolloDetector(object):
         :type period: str
         :returns: None.
         """
-        self.get_ids(target_date, period=period)
+        self.get_ids(target_date=report_date, period=period)
         self.get_text_from_wedds_files()
         self.process_text_for_entities()
         self.create_stop_entities()
@@ -1165,13 +1171,34 @@ class ApolloDetector(object):
         self.create_stop_entities(min_df=0)
         
         
-def main():
-    """run APOLLO"""
-    detector = ApolloDetector('/project/WEDSS/NLP/', 
-                          output_path = 'output_dir', 
-                          nlp_fields_file = 'supporting_data/nlp_fields.csv',
-                          stop_entities_file='supporting_data/stop_entities_example.csv')
-    detector.run_pipeline(target_date='2020-10-01', period='week')
+@click.command()
+@click.option('--input_path', type=click.Path(exists=True), default='/project/WEDSS/NLP/', help = 'dir for input WEDSS files')
+@click.option('--output_path', type=click.Path(exists=True), help = 'dir for output files, default: output_dir/YYYYMMDD')
+@click.option('--nlp_fields', type=click.Path(exists=True), default='supporting_data/nlp_fields.csv', help = 'file with WEDSS fields to use')
+@click.option('--stop_entities', type=click.Path(exists=True), default='supporting_data/all_stop_entities_list_min_df_0_pc_2021-04-22_00_31_plus_UHS_MAXIM_names.csv', help = 'file with stop entities to use')
+@click.option('--prefix', type=str, default='', help = 'prefix for all output file names')
+@click.option('--report_date', type=str, help = 'YYYY-MM-DD formatted date to run the pipeline on, default to today')
+@click.option('--period', type=str, default='trailing_seven_days', help = 'type of date period to run: week, trailing_seven_days, month, all')
+@click.option('--final_report_only/--no-final_report_only', default=True, help = 'only output final report file')
+def APOLLO_pipeline(input_path, output_path, nlp_fields, stop_entities, prefix, final_report_only, report_date, period):
+    """
+    Run the APOLLO pipeline
+    """
+    prefix = prefix.rstrip()
+    report_date = report_date.rstrip()
+    period = period.rstrip()
     
-if __name__=="__main__":
-    main()
+    detector = ApolloDetector(input_path, 
+                              output_path = output_path, 
+                              nlp_fields_file = nlp_fields,
+                              stop_entities_file = stop_entities,
+                              file_prefix=prefix,
+                              final_report_only=final_report_only)
+    
+    if not report_date: 
+        report_date = date.today().srtftime('%Y-%m-%d')
+        
+    detector.run_pipeline(report_date, period)
+
+if __name__ == '__main__':
+    APOLLO_pipeline()
