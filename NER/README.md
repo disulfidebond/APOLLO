@@ -15,12 +15,32 @@ bash run_apollo_example.sh
 
 for help:
 ```bash
-python run_apollo_example.py --help
+python APOLLO/ApolloDetector.py --help
 ```
 
 help output:
 ```bash
-here
+Usage: ApolloDetector.py [OPTIONS]
+
+  Run the APOLLO pipeline
+
+Options:
+  --input_path PATH               dir for input WEDSS files
+  --output_path PATH              dir for output files, default:
+                                  output_dir/YYYYMMDD
+
+  --nlp_fields PATH               file with WEDSS fields to use
+  --stop_entities PATH            file with stop entities to use
+  --prefix TEXT                   prefix for all output file names
+  --report_date TEXT              YYYY-MM-DD formatted date to run the
+                                  pipeline on, default to today
+
+  --period TEXT                   type of date period to run: week,
+                                  trailing_seven_days, month, all
+
+  --final_report_only / --no-final_report_only
+                                  only output final report file
+  --help                          Show this message and exit.
 ```
 
 ### NER Pipeline Output
