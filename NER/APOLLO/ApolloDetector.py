@@ -197,7 +197,8 @@ class ApolloDetector(object):
                     file_name:str, 
                     sep:str=',', 
                     add_date:bool = True, 
-                    ext:str='.csv'):
+                    ext:str='.csv',
+                    row_datestamp=False):
         """
         use this func to write all output - will require dict transformation to key:List before use every time
         :param d: dictionary to write
@@ -217,7 +218,6 @@ class ApolloDetector(object):
             export_file=True
         
         if export_file:
-
             date_string = ''
             if add_date:
                 date_string = '_'+datetime.strftime(datetime.now(),'%Y-%m-%d_%H_%M')
@@ -225,17 +225,32 @@ class ApolloDetector(object):
             write_path = self.output_path / (self.file_prefix + file_name + date_string + ext)
        
             with write_path.open("w") as csvfile:
+                datestamp = datetime.strftime(datetime.now(),'%Y-%m-%d')
                 csvwriter=csv.writer(csvfile,delimiter=sep)
+                # write date header for final report
+                if file_name=='final_report':
+                    csvwriter.writerow([f'APOLLO Report from: {self.date_range[-1]} to: {self.date_range[0]}'])
                 # write header row
-                csvwriter.writerow(columns)
+                header_row = []
+                header_row.extend(columns)
+                if row_datestamp:
+                    header_row.insert(0,'DateStamp')
+                    csvwriter.writerow(header_row)
+                if not row_datestamp:
+                    csvwriter.writerow(header_row)
                 # write data
                 for k, v in d.items():
-                    output_list = [k]                    
+                    if row_datestamp:
+                        output_list = [datestamp, k]
+                    if not row_datestamp:
+                        output_list = [k]     
+                    
                     if hasattr(v, '__iter__') and not isinstance(v,str):
                         for val in v:
                             output_list.append(val)
                     else:
                         output_list.append(v)
+                        
                     csvwriter.writerow(output_list)
 
 
@@ -850,6 +865,7 @@ class ApolloDetector(object):
                   columns=["Name","Type","Iterations","Score", "Incidents", 
                            "Outbreaks", "OutbreakIDs", "Outbreak Locations", 
                            "Outbreak Process Statuses"],
+                  row_datestamp=True,
                   file_name="final_report")
 
         if test_incident_entity_fuzzy_match_configs:
@@ -1185,9 +1201,10 @@ def APOLLO_pipeline(input_path, output_path, nlp_fields, stop_entities, prefix, 
     Run the APOLLO pipeline
     """
     prefix = prefix.rstrip()
-    report_date = report_date.rstrip()
     period = period.rstrip()
-    
+    if report_date:
+        report_date = report_date.rstrip()    
+        
     detector = ApolloDetector(input_path, 
                               output_path = output_path, 
                               nlp_fields_file = nlp_fields,
@@ -1196,7 +1213,7 @@ def APOLLO_pipeline(input_path, output_path, nlp_fields, stop_entities, prefix, 
                               final_report_only=final_report_only)
     
     if not report_date: 
-        report_date = date.today().srtftime('%Y-%m-%d')
+        report_date = date.today().strftime('%Y-%m-%d')
         
     detector.run_pipeline(report_date, period)
 
