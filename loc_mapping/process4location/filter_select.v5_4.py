@@ -67,44 +67,45 @@ scoreCol = []
 incidentsCol = []
 outbreakCol = []
 rowCt = 0
-with open(args.data) as fOpen:
-  header = True
-  for i in fOpen:
-    rowCt += 1
-    i = i.strip('\r\n')
-    iSplit = i.split(',')
-    nameCol.append(iSplit[0])
-    typeCol.append(iSplit[1])
-    iterationsCol.append(iSplit[2])
-    scoreCol.append(iSplit[3])
-    if header:
-      header = False
-      incidentsCol.append([])
-      outbreakCol.append([])
-      continue
-    iAppend = iSplit[4:]
-    iAppend = [x.replace(' ','') for x in iAppend]
-    iAppend = [x.replace("'","") for x in iAppend]
-    iAppend = [x.replace('"', '') for x in iAppend]
-    iAppend = [x.replace('[', '') for x in iAppend]
-    iAppend = [x.replace(']', '') for x in iAppend]
-    outbreakID_list = []
-    try:
-      outbreakIDs = list(filter(lambda x: x.startswith('2020-'), iAppend))
-      trimIdx = iAppend.index(outbreakIDs[0])
-      iAppend = iAppend[:trimIdx]
-      outbreakID_list = iAppend[trimIdx:]
-    except IndexError:
-      pass
-    incidentsCol.append(iAppend)
-    outbreakCol.append(outbreakID_list)
 
+df_data = pd.read_csv(args.data)
+
+df_data_nameList = df_data['Name'].replace(np.nan, '', regex=True)
+nameCol = df_data_nameList.tolist()
+df_data_typeList = df_data['Type'].replace(np.nan, '', regex=True)
+typeCol = df_data_typeList.tolist()
+df_data_iterList = df_data['Iterations'].replace(np.nan, 0.0)
+iterationsCol = df_data_iterList.tolist()
+df_data_scoreList = df_data['Score'].replace(np.nan, 0.0)
+scoreCol = df_data_scoreList.tolist()
+df_data_incdList = df_data['Incidents'].replace(np.nan, '', regex=True)
+incidentsCol_data = df_data_incdList.tolist()
+
+# parse incidents col into list of lists
+incidentsCol = []
+for i in incidentsCol_data:
+  iAppend = i.split(',')
+  iAppend = [x.replace(' ','') for x in iAppend]
+  iAppend = [x.replace("'","") for x in iAppend]
+  iAppend = [x.replace('"', '') for x in iAppend]
+  iAppend = [x.replace('[', '') for x in iAppend]
+  iAppend = [x.replace(']', '') for x in iAppend]
+  incidentsCol.append(iAppend)
+
+df_data_OutbList = df_data['Outbreaks'].replace(np.nan, '', regex=True)
+outbreakCol = df_data_OutbList.tolist()
+df_data_OutbIDList = df_data['OutbreakIDs'].replace(np.nan, 0)
+outbreakIDCol = df_data_OutbIDList.tolist()
+df_data_OutbLocList = df_data['Outbreak Locations'].replace(np.nan, '', regex=True)
+outbreakLocCol = df_data_OutbLocList.tolist()
+df_data_OutbProcStList = df_data['Outbreak Process Statuses'].replace(np.nan, '', regex=True)
+outbreakProcStCol = df_data_OutbProcStList.tolist()
 
 def createDataList(nCol, tCol, inCol, itCol, sCol, filterList=[]):
   filteredCount = 0
   unfilteredCount = 0
   results_lol = []
-  for i in range(1, len(inCol)):
+  for i in range(0, len(inCol)):
     if not filterList:
       iList = list(set(inCol[i]))
       iList = list(filter(lambda x: x != '', iList))
@@ -128,18 +129,23 @@ def createDataList(nCol, tCol, inCol, itCol, sCol, filterList=[]):
     print('found ' + str(filteredCount) + ' Misc or Org rows, and skipped ' + str(unfilteredCount) + ' rows.')
   return results_lol
 
-results_lol = createDataList(nCol=nameCol, tCol=typeCol, inCol=incidentsCol, itCol=iterationsCol, sCol=scoreCol, filterList=[])
 
+# createDataList(nCol, tCol, inCol, itCol, sCol, filterList=[])
+results_lol = createDataList(nCol=nameCol, tCol=typeCol, inCol=incidentsCol, itCol=iterationsCol, sCol=scoreCol, filterList=[])
 
 # import dataset to pull lat/lng coordinates
 df = pd.read_csv(args.patients, sep='|', dtype={'IncidentID': 'int', 'Latitude': 'float', 'Longitude': 'float'})
-print(df.head())
-df_incidents = df.loc[:,'IncidentID'].tolist()
+df = df.dropna()
+df_incidents = df.loc[:, 'IncidentID'].tolist()
 df_incidents = [str(x) for x in df_incidents]
 df_lat = df.loc[:,'Latitude'].tolist()
 df_lng = df.loc[:,'Longitude'].tolist()
+df_zip = df.loc[:,'Zip'].tolist()
+df_cty = df.loc[:,'County'].tolist()
 formatted_results = []
 resList = []
+resZip = []
+resCty = []
 resNames = []
 dup_Ct = 0
 
@@ -149,18 +155,21 @@ with open(internalListFile, 'a') as fWrite:
   for i in range(0, len(results_lol)):
     itm = results_lol[i]
     incList = ','.join(itm[4])
-    # print(itm)
-    # print(str(itm[5][0]) + ',' + str(itm[5][1]) + '|' + itm[0] + '|' + itm[1] + '|' + itm[2] + '|' + itm[3] + '|' + incList)
-    fWrite.write(str(i) + '|' + itm[0] + '|' + itm[1] + '|' + itm[2] + '|' + itm[3] + '|' + incList + '\n')
+    fWrite.write(str(i) + '|' + itm[0] + '|' + itm[1] + '|' + str(itm[2]) + '|' + str(itm[3]) + '|' + incList + '\n')
 
 for i in results_lol:
   iList = i[4]
   rList = []
+  zList = []
+  cList = []
   nm = i[0]
   for itm in iList:
     if itm in df_incidents:
       fIdx = df_incidents.index(itm)
       rList.append([df_lat[fIdx],df_lng[fIdx]])
+      # modification to add zips
+      zList.append(df_zip[fIdx])
+      cList.append(df_cty[fIdx])
     else:
       print('warning, incident ID ' + str(itm) + ' in ' + str(nm) + ' not found!')
   """
@@ -213,19 +222,28 @@ for i in results_lol:
         lng_coords = [x[1] for x in centroids]
     coords = list(zip(lat_coords, lng_coords))
     resList.append((nm, coords))
+  zipString = ','.join(zList)
+  # remove duplicated counties
+  resCtyList = list(set(cList))
+  ctyString = ','.join(resCtyList)
+  resZip.append((nm, zipString))
+  resCty.append((nm, ctyString))
 
+zips4GooglePlacesFile = 'zipsCounties4GooglePlaces.' + ts_string + '.txt'
+with open(zips4GooglePlacesFile, 'w') as fWrite:
+  for i in range(0, len(resZip)):
+    s = resZip[i][0] + '\t' + resZip[i][1] + '\t' + resCty[i][0] + '\t' + resCty[i][1]
+    fWrite.write(s + '\n')
 
 ct = 0
-list4GooglePlacesFile = 'list4GooglePlaces.' + ts_string + '.txt'
+list4GooglePlacesFile = 'list4GooglePlaces.noZips.' + ts_string + '.txt'
 for i in resList:
-  # print(str(ct) + ',' +str(i[0]) + ',' + str(i[1][0]) + ',' + str(i[1][1]))
   ll_string = ''
   if len(i[1]) > 1:
     ll_list = [str(x[0]) + ',' + str(x[1]) for x in i[1]]
     ll_string = '|'.join(ll_list)
   else:
-    ll_string = str(i[1][0][0]) + ',' + str(i[1][0][1]) + '|'
-  # print(str(ct) + ',' + str(i[0]) + ',' + ll_string)
+    ll_string = str(i[1][0][0]) + ',' + str(i[1][0][1])
   with open(list4GooglePlacesFile, 'a') as fWrite:
     fWrite.write(str(ct) + ',' + str(i[0]) + ',' + ll_string + '\n')
   ct += 1
