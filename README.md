@@ -4,6 +4,8 @@ APOLLO (Automated Public Outbreak Localization through Lexical Operations) is a 
 # Description of Output
 The output columns are listed below, with descriptions:
 
+* DateStamp: YYYY-MM-DD formated date. The start date of trailing week for which report was run. e.g. a DateStamp value of 2021-06-04 refers to the week from 2021-06-04 back to 2021-05-29, inclusive. 
+
 * Name: The named entity extracted directly from the text fields of contact interviews, including Investigation Notes (retrieved from WEDSS). These are limited to potential organizations, locations, or miscellaneous.  The remainder of the columns in this report are related to this field.  All results are for the 'Name' moving forward.
 
 * Type: The type of named entity, which is one of: Organization, Location, Miscellaneous.
