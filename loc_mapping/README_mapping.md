@@ -26,3 +26,5 @@ The hexagon framework for the searches serves to create an organized grid where 
 As long as the central search radius (the circle that is inscribed within each hexagon grid unit) is greater than or equal to the search radii on the hexagon vertices, the overlaps will ensure that all areas under consideration will be searched at least once for a matching business name.
 
 As a final note, using the haversine formula to generate the hexagonal grid on the Earth’s surface results in a linear decrease in accuracy due to rounding areas when calculations are made. In practice, this is not a concern, since the overlapping search circles will compensate for this error as long as the distance from the centroid does not exceed 500 km.
+
+![](https://github.com/disulfidebond/APOLLO/blob/main/media/mapping_img7.png)
