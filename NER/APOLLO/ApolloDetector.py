@@ -50,7 +50,15 @@ class ApolloDetector(object):
     raw_wedss_text: dictionary of incidentID:all WEDDS text from NLP fields 
     separated by .'s.
     ner_results: {incidentID:[[all ners], [all ner types], [all ner scores]]}
-    outbreaks: dictionaru of outbreak dictionaries by incidentID {incidentID:{'outbreakID ':###, 'OutbreakLocation':###, etc)
+    outbreaks: dictionary of outbreak dictionaries by incidentID 
+    {incidentID:{'outbreakID ':###, 'OutbreakLocation':###, etc)
+    outbreak_stats: dictionary of statistics about outbreaks and outbreak 
+    matching {'statistic_name':numerical_value}
+    self.outbreak_stats['total_known_outbreaks_for_all_incident_ids'] = len(self.outbreaks) 
+    self.outbreak_stats['unique_known_outbreaks_for_all_incident_ids'] = len(unique_outbreaks) total outbreaks for period(incidentIDs)
+    self.outbreak_stats['associated outbreak count'] = len(outbreaks_to_ners) outbreaks associated with an incident ids and entities
+    self.outbreak_stats['unique outbreaks matched to NERS from data_dict'] = len(unique_outbreaks_data)
+        
     """
     def __init__(self, data_folder:str, 
                  nlp_fields_file:str,
@@ -67,7 +75,7 @@ class ApolloDetector(object):
             
             if output_path:
                 logger.info(f'output path path specified: {output_path}')
-                assert not re.match(r"[\<\>\:\"\|\?\*\#\']",output_path), f"file_prefix contains an illegal character: ['<','>',':','\"',,'|','?','*','#,''']"
+                assert not re.match(r"[\<\>\:\"\|\?\*\#\']",output_path), "file_prefix contains an illegal character: ['<','>',':','\"',,'|','?','*','#,''']"
                 # if output_path doesn't exist create it.
                 
                 Path(output_path).mkdir(parents=True, exist_ok=True)
@@ -94,7 +102,7 @@ class ApolloDetector(object):
                 self.stop_entities = self.get_stop_entities_from_file(stop_entities_file)
             
             assert isinstance(file_prefix, str), f'{file_prefix} is not a str'
-            assert not re.match(r"[\<\>\:\"\\\/\|\?\*\#\']",file_prefix), f"file_prefix contains an illegal character: ['<','>',':','\"','\\','/','|','?','*','#',''']"
+            assert not re.match(r"[\<\>\:\"\\\/\|\?\*\#\']",file_prefix), "file_prefix contains an illegal character: ['<','>',':','\"','\\','/','|','?','*','#',''']"
             if file_prefix:
                 self.file_prefix = file_prefix + '_'
             else:
@@ -225,11 +233,15 @@ class ApolloDetector(object):
             write_path = self.output_path / (self.file_prefix + file_name + date_string + ext)
        
             with write_path.open("w") as csvfile:
-                datestamp = datetime.strftime(datetime.now(),'%Y-%m-%d')
+                try:
+                    datestamp = datetime.strftime(max(self.date_range), '%Y-%m-%d')
+                except:
+                    datestamp = datetime.strftime(datetime.now(),'%Y-%m-%d')
                 csvwriter=csv.writer(csvfile,delimiter=sep)
                 # write date header for final report
                 if file_name=='final_report':
-                    csvwriter.writerow([f'APOLLO Report from: {self.date_range[-1]} to: {self.date_range[0]}'])
+                    if self.date_range:
+                        csvwriter.writerow([f'APOLLO Report from: {self.date_range[-1]} to: {self.date_range[0]}'])
                 # write header row
                 header_row = []
                 header_row.extend(columns)
@@ -253,7 +265,82 @@ class ApolloDetector(object):
                         
                     csvwriter.writerow(output_list)
 
-
+    def extract_specific_patient_rows(self, target_ids:List):
+        """
+        :param target_ids: list of incident ids
+        output csv of patient rows by incident id
+        """
+        logger.info('extracting specific patient rows...')
+        patient_rows = {}
+        header_columns = []
+        with self.file_paths['patient'].open('r', encoding='ISO-8859-1') as f: 
+                f.seek(0)
+                lines=f.readlines()
+                for count, line in tqdm(enumerate(lines)):
+                    header_row = False
+                    if count == 0:
+                        header_row = True
+                    ls=line.split("|")
+                    incidentID = ls[0]
+                    
+                    if header_row:
+                        header_columns = ls
+                    
+                    if (not header_row) and (incidentID in target_ids):
+                        patient_rows[incidentID] = ls
+        
+        logger.info(f'found {len(patient_rows)}/{len(target_ids)}')
+        self.dict_to_csv(patient_rows,
+                         header_columns,
+                         'specific_patient_rows')
+    
+    def extract_all_wedss_text_by_incident_id(self, target_ids:List):
+        """
+        :param target_ids: incidentIDs to get ALL data for
+        output csv of incident ids and all fields
+        """
+        logger.info('extracting all WEDSS data')
+        
+        raw_wedss_text={}
+       
+        # iterate over all files in files list, 
+        logger.info(f"reading in WEDSS files: {self.file_paths['all']}")
+        for file in tqdm(self.file_paths['all']):
+            with file.open('r', encoding='ISO-8859-1') as f:
+                f.seek(0)
+                lines=f.readlines()
+                
+                # iterate over every line in a file
+                for counter, line in tqdm(enumerate(lines)):
+                    header_row = False
+                    if counter == 0:
+                        header_row=True
+                    ls=line.split("|")
+                    incident_id = ls[0]
+                                
+                    # for non-header/first file rows, if row has id in list of ids passed to fn
+                    # concatenate all values of all columns in that file that were in the NLPFields.csv file
+                    # concatenated into a string separated by '.'. 
+                    if not header_row:
+                        tmp=''
+                        if incident_id in target_ids:
+                            try:
+                                tmp=tmp+'|'+file.stem+'|'+line
+                            except:
+                                pass
+                        
+                            # if incidentID its not in self.raw_wedss_text dict already, 
+                            # append it and associated text, else just extend text.
+                            if incident_id not in raw_wedss_text:
+                                raw_wedss_text[incident_id]=tmp
+                            else:
+                                raw_wedss_text[incident_id]+=tmp 
+                                
+        self.dict_to_csv(raw_wedss_text, 
+                         columns=["IncidentID","Text"], 
+                         file_name="all_wedds_text_for_specific_ids")
+        
+    
     def set_date_range(self, day, period) -> List:
         """
         given a date, return it's year and week number
@@ -461,6 +548,8 @@ class ApolloDetector(object):
                 v = re.sub(r"MAXIM\w+, \w+,", '', v)
                 v = re.sub(r"UHS\w+, \w+,", '', v)
                 v = re.sub(r' MAXIM ', ' ', v)
+                v = re.sub(r'Covid19.+, .+,', ' ', v)
+                v = re.sub(r'[Pp]acifi[\w]+ [Ii]nterp[\w]+', ' ', v)
                 
                 processed_wedss_text[k] = v
         
@@ -540,11 +629,11 @@ class ApolloDetector(object):
                         for column_name in column_names:
                             self.outbreaks[incident_id][column_name] = row[name_to_index[column_name]]
         
-        self.outbreak_stats['total_outbreaks_for_all_incident_ids'] = len(self.outbreaks)
+        self.outbreak_stats['total_known_outbreaks_for_all_incident_ids'] = len(self.outbreaks)
         
         unique_outbreaks = {v['Outbreak#']:1 for k,v in self.outbreaks.items()}
         
-        self.outbreak_stats['unique_outbreaks_for_all_incident_ids'] = len(unique_outbreaks)
+        self.outbreak_stats['unique_known_outbreaks_for_all_incident_ids'] = len(unique_outbreaks)
         
         
     
@@ -637,13 +726,15 @@ class ApolloDetector(object):
                     unique_outbreaks_data[outbreak_id] += 1
                 else:
                     unique_outbreaks_data[outbreak_id] = 1
-                    
-        self.outbreak_stats['unique outbreaks matched to NERS from data_dict'] = len(unique_outbreaks_data)
+        
+        self.outbreak_stats['unique outbreaks matched to NERS from data_dict'] = [k for k in unique_outbreaks_data]
+        self.outbreak_stats['unique outbreaks matched to NERS from data_dict_count'] = len(unique_outbreaks_data)
+       
         print(self.outbreak_stats)
         
         self.dict_to_csv(outbreaks_to_ners, ['outbreak_id','NERs'], 'outbreaks_to_ners')
         self.dict_to_csv(unique_outbreaks_data, ['outbreak_id', 'count'], 'unique_outbreaks')
-        self.dict_to_csv(self.outbreak_stats, ['outbreak_stat', 'value'], 'outbreak_stats')
+        
         return outbreak_data_by_entity  # outbreak_ids_by_entity, 
 
     
@@ -839,7 +930,27 @@ class ApolloDetector(object):
                 ]
         return all_keys
     
-            
+    def get_novel_outbreaks(self, all_keys:Dict) -> Dict:
+        """
+        get Dict of novel outbreaks in final results
+        filter all_keys to only rows with no matched outbreak and entity count of >2
+        
+        :param all_keys: collected output in dictionary format (entity: list)
+        :para type: Dict
+        :return: entity: ['Type','Iterations','Score','Incidents','Outbreaks']
+        :return type: Dict
+        """
+        
+        novel_outbreaks = {k: v for k,v in all_keys.items() if (not v[4]) and (v[1] >= 2)}
+        
+        self.dict_to_csv(novel_outbreaks,
+                         columns = ["Name","Type","Iterations","Score", "Incidents", 
+                           "Outbreaks", "OutbreakIDs", "Outbreak Locations", 
+                           "Outbreak Process Statuses"],
+                         file_name = 'novel_outbreaks')
+        
+        return novel_outbreaks
+                
     def create_report(self, test_incident_entity_fuzzy_match_configs=False):
         """
         take NERPipeline output (dict {incidentID: [[Names], [Types], [Scores]]}) and convert to per entity output:
@@ -861,6 +972,12 @@ class ApolloDetector(object):
             )
         all_keys = self.tidy_fuzzy_matched_results(all_keys)
 
+        novel_outbreaks = self.get_novel_outbreaks(all_keys)
+        
+        self.outbreak_stats['novel_outbreaks'] = novel_outbreaks
+        self.outbreak_stats['novel_outbreaks_count'] = len(novel_outbreaks)
+        self.dict_to_csv(self.outbreak_stats, ['outbreak_stat', 'value'], 'outbreak_stats')
+        
         self.dict_to_csv(all_keys,
                   columns=["Name","Type","Iterations","Score", "Incidents", 
                            "Outbreaks", "OutbreakIDs", "Outbreak Locations", 
@@ -958,9 +1075,9 @@ class ApolloDetector(object):
             entities = k.split(',')  # restore this to combine entities
             # entities = k  # delete this to combine entities
             types = self.flatten(v[0])
-            iterations = self.flatten(v[1])
+            iterations = self.flatten(v[1])            
             scores = self.flatten(v[2])
-            incidents=self.flatten(v[3])
+            incidents=list(set(self.flatten(v[3])))
             try:
                 outbreak_names=self.flatten(v[4])
             except(IndexError):
@@ -988,9 +1105,9 @@ class ApolloDetector(object):
             main_type = types[max_index]  # TODO: this is coming back None sometimes - why?
             if not main_type:
                   main_type = 'Miscellaneous'  
-            summed_iterations = sum(iterations)
+            summed_iterations = iterations = len(incidents) # sum(iterations)
             average_score = sum(self.flatten(scores))/len(self.flatten(scores))
-            incidents = self.flatten(incidents)
+            # incidents = self.flatten(incidents)
 
             # check if outbreak locations is just empty strings
             empty_count = 0           
@@ -1002,7 +1119,7 @@ class ApolloDetector(object):
             
             processed_output[main_entity] = [
                 main_type, summed_iterations, average_score, incidents,  # outbreaks
-                outbreak_names, outbreak_ids, outbreak_locations,
+                outbreak_names, outbreak_ids, outbreak_locations, outbreak_process_statuses
                 ]
         
         # sort dictionary to order by iterations largest to smallest.
@@ -1191,7 +1308,7 @@ class ApolloDetector(object):
 @click.option('--input_path', type=click.Path(exists=True), default='/project/WEDSS/NLP/', help = 'dir for input WEDSS files')
 @click.option('--output_path', type=click.Path(exists=True), help = 'dir for output files, default: output_dir/YYYYMMDD')
 @click.option('--nlp_fields', type=click.Path(exists=True), default='supporting_data/nlp_fields.csv', help = 'file with WEDSS fields to use')
-@click.option('--stop_entities', type=click.Path(exists=True), default='supporting_data/all_stop_entities_list_min_df_0_pc_2021-04-22_00_31_plus_UHS_MAXIM_names.csv', help = 'file with stop entities to use')
+@click.option('--stop_entities', type=click.Path(exists=True), default='supporting_data/all_stop_entities_2021_06_29.csv', help = 'file with stop entities to use')
 @click.option('--prefix', type=str, default='', help = 'prefix for all output file names')
 @click.option('--report_date', type=str, help = 'YYYY-MM-DD formatted date to run the pipeline on, default to today')
 @click.option('--period', type=str, default='trailing_seven_days', help = 'type of date period to run: week, trailing_seven_days, month, all')
