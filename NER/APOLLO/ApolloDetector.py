@@ -975,7 +975,6 @@ class ApolloDetector():
 
         novel_outbreaks = self.get_novel_outbreaks(all_keys)
         
-
         self.outbreak_stats['novel_outbreaks'] = novel_outbreaks # put this in it's own export csv.
         self.outbreak_stats['novel_outbreaks_count'] = len(novel_outbreaks)  #FP
         tp=self.outbreak_stats['unique outbreaks matched to NERS from data_dict_count']
