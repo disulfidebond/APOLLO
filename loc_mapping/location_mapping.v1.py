@@ -18,7 +18,7 @@ import string
 
 t_stamp = time.time()
 t_stamp_string = datetime.datetime.fromtimestamp(t_stamp).strftime('%Y%m%d_%H%M%S')
-apikey = 'AIzaSyBoCLw1n0Sf060AxmaoilSIRP14ffqEqks'
+apikey = ''
 # Part 0: Functions and variable names
 
 outFileName = 'parsedOutputFromGoogle.08092021.hexagonMapping.txt'
