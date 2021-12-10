@@ -1,0 +1,10 @@
+TimeStart	TimeEnd	Name	Type	Iterations	Score	Incidents	Outbreaks	OutbreakIDs	Outbreak Locations	Outbreak Process Statuses	Address1	Confidence1	URL1	Address2	Confidence2	URL2	Address3	Confidence3	URL3	Zip	County
+11/7/2021	11/13/2021	Novel 1	Organization	3	0.144146675	"['1', '2', '3']"	[]	[]		[]	"1 Detected Street, Sun Prarie, WI"	30	https://www.google.com/maps/place/?q=place_id:totallyvalidid								
+11/7/2021	11/13/2021	Novel 2	Location	3	0.216225688	"['4', '5', '6']"	[]	[]		[]	"100 Found Rd, Verona, WI"	100	https://www.google.com/maps/place/?q=place_id:thisoneisreal								
+11/7/2021	11/13/2021	Novel 3	Location	3	0.481929084	"['7', '8', '9']"	[]	[]		[]	"Torch BBQ, 2 Crispy Ct, Middleton, WI"	100	https://www.google.com/maps/place/?q=place_id:mmmhmmm								
+11/7/2021	11/13/2021	tp 1	Location	3	0.602739233	"['10', '11', '12']"	['2021 TYPICAL ELEMENTARY SCHOOL']	['1']		['Open Local Investigation']	"10 Detected Street, Sun Prarie, WI"	100	https://www.google.com/maps/place/?q=place_id:lkdsflskmfslkfm								
+11/7/2021	11/13/2021	tp 2	Organization	3	0.475936414	"['13', '14', '15']"	['2021-DANE COMMUNITY REHAB-CENTER']	['2']		['Open Local Investigation']	"3 Found Rd, Verona, WI"	100	https://www.google.com/maps/place/?q=place_id:pwoerpwokrpweork								
+11/7/2021	11/13/2021	tp 3	Miscellaneous	3	0.407747609	"['16', '17', '18']"	['2021-DANE-PURPLE POLYGON DAYCARE']	['3']		['Open Local Investigation']	"Purple Polygon, 2 Sleep St, Middleton, WI"	90	https://www.google.com/maps/place/?q=place_idlkmvxlkcmvxlckmvxclkmcxlkm								
+11/7/2021	11/13/2021	fp 1	Location	3	0.451335076	"['19', '20', '21']"	[]	[]		[]	FILTERED										
+11/7/2021	11/13/2021	fp 2	Location	3	0.660786967	"['21', '22', '23']"	[]	[]		[]	FILTERED										
+11/7/2021	11/13/2021	fp 3	Organization	3	0.485229495	"['24', '25', '26']"	[]	[]		[]	FILTERED										

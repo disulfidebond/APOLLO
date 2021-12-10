@@ -1,0 +1,7 @@
+IncidentID	OutbreakID 	Outbreak#	OutbreakLocation	OutbreakLocationType	OutbreakLocationAddress	OutbreakCreateDate	OutbreakLocationJurisdiction	OutbreakProcessStatus	OutbreakResolutionStatus
+10	1	2021 TYPICAL ELEMENTARY SCHOOL						Final	Suspect
+13	2	2021-DANE COMMUNITY REHAB-CENTER						New	Confirmed
+16	3	2021-DANE-PURPLE POLYGON DAYCARE						Final	Confirmed
+30	4	2021-DANE-SUPER PIZZA EMPORIUM						Final	Confirmed
+31	5	2021-DANE-FAMOUS BOOK PUBLISHER						Final	Confirmed
+32	6	2021 DANE ELDERLY COMMUNITY						Final	Confirmed

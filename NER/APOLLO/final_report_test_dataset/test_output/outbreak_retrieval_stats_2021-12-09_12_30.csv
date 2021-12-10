@@ -1,0 +1,2 @@
+Month,total_unique_incidents,known_outbreaks,total_entities,novel_outbreaks,TP,FP,FN,recall,precision,f1_score,recall_CI_lower,recall_CI_upper,recall_CI_upper_delta,recall_CI_lower_delta,precision_CI_lower,precision_CI_upper,precision_CI_upper_delta,precision_CI_lower_delta
+2020-11-01,27,6,9,3,3,3,3,0.5,0.5,0.5,0.0,0.6666666666666666,-0.2538367965367964,0.4128298701298702,0.0,1.0,-0.4929444444444443,0.5070555555555557

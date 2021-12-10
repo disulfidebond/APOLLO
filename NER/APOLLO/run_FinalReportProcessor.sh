@@ -1,0 +1,2 @@
+#!/bin/bash
+python FinalReportProcessor.py --outbreak-chunks-path "./final_report_test_dataset/" --final-reports-path "./final_report_test_dataset/" --output-path "./final_report_test_dataset/test_output/"
